@@ -1,9 +1,22 @@
 DirectoryIndex index.php
 
-<IfModule mod_rewrite.c>
+    <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /pelaporanlansia/
-    
+
+    # BLOCK: direktori data (SQLite database)
+    RewriteRule ^data/ - [F,L]
+
+    # BLOCK: file database dan konfigurasi sensitif
+    RewriteRule \.db$ - [F,L]
+    RewriteRule \.sql$ - [F,L]
+    RewriteRule \.git/ - [F,L]
+
+    # BLOCK: script setup/testing dari akses publik
+    RewriteRule ^test_db\.php$ - [F,L]
+    RewriteRule ^setup\.php$ - [F,L]
+    RewriteRule ^init_db\.php$ - [F,L]
+
     # Serve dist/ files directly
     RewriteCond %{REQUEST_URI} ^/pelaporanlansia/dist/ [NC]
     RewriteRule ^ - [L]

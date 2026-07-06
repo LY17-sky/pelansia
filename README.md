@@ -160,14 +160,32 @@ Buka `http://localhost:8000/login.php`
 | `PUT` | `/api/settings` | super_admin | Update pengaturan |
 | `GET` | `/api/health-classify` | Public | Klasifikasi kesehatan |
 
-## 📝 Catatan Development
-- **Prepared Statements**: Aman dari SQL Injection
-- **CSRF Protection**: Semua form dilengkapi token
-- **Bearer Token Auth**: API menggunakan token 24 jam
-- **Error Handling**: Try-catch untuk semua operasi database
-- **Role-Based Access**: Setiap halaman dicek role-nya
-- **Responsive**: Breakpoints Tailwind (sm/md/lg/xl)
-- **GitHub Actions**: CI otomatis (lint PHP + test database)
+## 🔒 Keamanan
+
+### File Protection (.htaccess)
+
+File dan folder berikut diblokade dari akses publik untuk mencegah kebocoran data:
+
+| File/Folder | Diblokade? | Dampak ke Fitur |
+|------------|:----------:|:---------------:|
+| `data/` (database SQLite) | ✅ 403 Forbidden | Tidak ada — hanya dipanggil internal via PHP |
+| `*.db` (semua file database) | ✅ 403 Forbidden | Tidak ada |
+| `*.sql` (skema database) | ✅ 403 Forbidden | Tidak ada |
+| `.git/` (riwayat git) | ✅ 403 Forbidden | Tidak ada |
+| `test_db.php` | ✅ 403 Forbidden | Tidak ada — hanya untuk testing CLI |
+| `setup.php` | ✅ 403 Forbidden | Tidak ada — sudah ada cek role super_admin |
+| `init_db.php` | ✅ 403 Forbidden | Tidak ada — hanya dipanggil internal via require |
+
+> Semua blokade menggunakan aturan `RewriteRule` dengan flag `[F,L]` (Forbidden) sehingga pengembali kode HTTP 403 tanpa mengeksekusi atau mengirimkan file.
+
+### Keamanan Aplikasi
+- **Prepared Statements**: Semua query SQL menggunakan parameter binding — aman dari SQL Injection
+- **CSRF Protection**: Semua form dilengkapi token CSRF
+- **Bearer Token Auth**: API menggunakan token acak 24 jam
+- **Password Hashing**: Password user di-hash dengan bcrypt (`password_hash`)
+- **Role-Based Access**: Setiap halaman dan endpoint dicek role-nya sebelum dijalankan
+- **Error Handling**: Try-catch untuk semua operasi database, error tidak diekspos ke publik
+- **Soft-Delete**: Data lansia tidak pernah dihapus permanen, hanya dinonaktifkan
 
 ---
 
