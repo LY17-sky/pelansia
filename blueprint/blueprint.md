@@ -25,10 +25,11 @@ Aplikasi web untuk mengelola data kunjungan kesehatan lansia di Puskesmas.
 
 **Fitur Utama:**
 - Manajemen data lansia (CRUD dengan profil kesehatan lengkap)
-- Pencatatan kunjungan harian (vital signs, diagnosa, rekomendasi)
+- Pencatatan kunjungan harian (vital signs, diagnosa, rekomendasi, skrining geriatri)
+- Skrining Geriatri Dasar (gangguan penglihatan, pendengaran, risiko jatuh, kemandirian, daya ingat)
 - Dashboard analytics real-time (total lansia, kunjungan hari ini, status kesehatan, kategori, risiko, trend 7-hari)
-- Laporan terstruktur dengan filter & export CSV/Excel
-- Riwayat kunjungan per pasien (timeline)
+- Laporan terstruktur dengan filter & export CSV/Excel/PDF
+- Riwayat kunjungan per pasien (timeline) dengan detail skrining geriatri
 - Manajemen user dengan role-based access control
 - Audit trail (activity logging)
 - Klasifikasi kesehatan otomatis berdasarkan parameter vital
@@ -54,8 +55,7 @@ Aplikasi web untuk mengelola data kunjungan kesehatan lansia di Puskesmas.
 | Database | SQLite 3 | File-based (`lansia.db`) |
 | State Management | React Hooks + Context API | - |
 | HTTP Client | Fetch API | - |
-| Auth API | Bearer Token | tokens table (24h expiry) |
-| Auth PHP Pages | Session | `$_SESSION['user']` |
+| Auth | Bearer Token + Session | Dual auth sync (token & session) |
 | Routing | react-router | ^7.13.0 |
 | Charts | recharts | ^2.15.2 |
 | Icons | lucide-react | ^0.487.0 |
@@ -73,13 +73,13 @@ Aplikasi web untuk mengelola data kunjungan kesehatan lansia di Puskesmas.
 ├───────────────────────────────────────┤
 │   APPLICATION LAYER                   │
 │   PHP REST API — api/index.php        │
-│   Legacy PHP Pages (session-based)    │
+│   Legacy PHP Pages (dual auth sync)   │
 │   Auth, Business Logic, Validation    │
 ├───────────────────────────────────────┤
 │          ↓ PDO Queries                 │
 ├───────────────────────────────────────┤
 │   DATA LAYER                          │
-│   SQLite — 9 Core Tables              │
+│   SQLite — 8 Core Tables              │
 └───────────────────────────────────────┘
 ```
 
@@ -88,19 +88,18 @@ Aplikasi web untuk mengelola data kunjungan kesehatan lansia di Puskesmas.
 ```
 pelaporanlansia/
 ├── api/index.php              # Main API router (all endpoints)
-├── config/database.php        # DB connection (SQLite/MySQL)
+├── config/database.php        # DB connection (SQLite only)
 ├── src/
 │   ├── pages/                 # 11 React pages
-│   ├── components/            # 10 reusable components
+│   ├── components/            # 9 reusable components
 │   ├── utils/api.js           # Frontend API client (25+ methods)
-│   ├── utils/health.js        # Health classification utilities
+│   ├── utils/constants.js     # Constants & helpers (ex-health.js)
 │   └── styles/globals.css     # Tailwind directives
 ├── inc/
-│   ├── functions.php          # PHP utility functions (session-based)
+│   ├── functions.php          # PHP utility functions (auth + DB)
 │   └── layout.php             # PHP layout template
-├── assets/                    # Compiled frontend (index-[hash].js/.css)
-├── data/lansia.db             # SQLite database file
-├── database.sql               # Schema SQL (MySQL)
+├── data/lansia.db             # SQLite database file (auto-created)
+├── database.sql               # MySQL schema (legacy, not actively used)
 ├── init_db.php                # DB initialization script
 ├── dist/                      # React SPA build output
 ├── index.php                  # Frontend entry point (React SPA)
@@ -113,9 +112,9 @@ pelaporanlansia/
 ├── logout.php                 # Logout handler
 ├── dashboard.php              # Legacy PHP dashboard
 ├── lansia.php                 # Legacy PHP lansia CRUD
-├── kunjungan.php              # Legacy PHP visit entry
-├── laporan.php                # Legacy PHP reports
-├── detail-lansia.php          # PHP patient detail/history
+├── kunjungan.php              # Legacy PHP visit entry + skrining geriatri
+├── laporan.php                # Legacy PHP reports + skrining columns
+├── detail-lansia.php          # PHP patient detail/history + skrining geriatri detail
 ├── pengaturan.php             # Account settings
 └── setup.php                  # DB setup wizard
 ```
@@ -135,12 +134,12 @@ pelaporanlansia/
 
 ### Key Design Decisions
 
-1. **Dual Auth System** — Bearer token (tokens table, 24h expiry) untuk API React, session (`$_SESSION['user']`) untuk PHP pages
+1. **Dual Auth Sync** — Bearer token (tokens table, 24h expiry) untuk API React, session (`$_SESSION['user']`) untuk PHP pages. Keduanya sinkron: login dari PHP generate token, login dari API set session. PHP pages auto-login via Bearer token header.
 2. **API-First** — Frontend React komunikasi via REST API; PHP pages sebagai fallback legacy
-3. **Role-Based Access** — 2 roles (`super_admin`, `admin`) dengan strict enforcement di route & API
-4. **Soft Delete** — `status_aktif` flag untuk audit trail
-5. **JSON Aggregation** — `laporan_json` untuk data laporan kompleks
-6. **Auto-Classification** — `GET /api/health-classify` untuk klasifikasi kesehatan dengan age-adjusted thresholds
+3. **Single Database Engine** — SQLite only. Dual engine (SQLite/MySQL) dihapus untuk konsistensi
+4. **Role-Based Access** — 2 roles (`super_admin`, `admin`) dengan strict enforcement di route & API
+5. **Soft Delete** — `status_aktif` flag untuk audit trail
+6. **Health Classification via API** — `GET /api/health-classify` sebagai single source of truth. Frontend panggil API, tidak ada logika duplikat di JS
 7. **Timestamp Tracking** — Semua tabel punya `created_at` dan `updated_at`
 
 ---
@@ -151,22 +150,18 @@ pelaporanlansia/
 
 | Property | Value |
 |----------|-------|
-| Nama Database | `sistemlansia` |
-| Default Driver | **SQLite 3.x** (file-based) |
-| Alternatif | MySQL 5.7+ / MariaDB 10.3+ |
-| Lokasi SQLite | **`data/lansia.db`** |
-| Total Tables | **9** (8 core + `tokens`) |
+| Database | **SQLite 3.x** (file-based) |
+| Lokasi DB | **`data/lansia.db`** |
+| Total Tables | **8** (7 core + `tokens`) |
 
 ### ER Diagram
 
 ```
 puskesmas ──── users       (1:N, FK: id_puskesmas)
 puskesmas ──── villages    (1:N, FK: id_puskesmas)
-puskesmas ──── reports     (1:N, FK: id_puskesmas)
 villages  ──── lansia      (1:N, FK: id_desa)
 lansia    ──── visits      (1:N, FK: id_lansia)
 users     ──── visits      (1:N, FK: id_petugas)
-users     ──── reports     (1:N, FK: id_petugas)
 users     ──── activities  (1:N, FK: id_user)
 users     ──── tokens      (1:N, FK: user_id)
 settings  (key-value store, no FK)
@@ -282,6 +277,12 @@ CREATE TABLE visits (
     status_disabilitas TEXT DEFAULT 'tidak_ada' CHECK(status_disabilitas IN ('tidak_ada','ringan','sedang','berat')),
     kelainan TEXT, keluhan TEXT,
     diagnosa TEXT, tindakan TEXT,
+    -- Skrining Geriatri Dasar
+    gangguan_penglihatan TEXT DEFAULT 'tidak_ada',  -- tidak_ada / ringan / berat
+    gangguan_pendengaran TEXT DEFAULT 'tidak_ada',  -- tidak_ada / ringan / berat
+    risiko_jatuh TEXT DEFAULT 'rendah',              -- rendah / sedang / tinggi
+    status_kemandirian TEXT DEFAULT 'mandiri',        -- mandiri / bantuan_sebagian / tergantung
+    gangguan_daya_ingat TEXT DEFAULT 'tidak_ada',     -- tidak_ada / ada
     -- Referral
     rujukan TEXT, tujuan_rujukan TEXT,
     rekomendasi TEXT DEFAULT 'pemeriksaan_biasa',
@@ -298,32 +299,7 @@ CREATE INDEX idx_visits_tanggal ON visits(tanggal_kunjungan);
 CREATE INDEX idx_visits_status ON visits(status_kesehatan);
 ```
 
-### 6. reports — Aggregated Reports (MySQL only)
-
-Hanya ada di `database.sql` (MySQL). Tidak dibuat di SQLite by default.
-
-```sql
-CREATE TABLE reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    id_puskesmas INTEGER NOT NULL,
-    id_petugas INTEGER NOT NULL,
-    tanggal_laporan TEXT NOT NULL,
-    periode_awal TEXT NOT NULL,
-    periode_akhir TEXT NOT NULL,
-    total_kunjungan INTEGER DEFAULT 0,
-    total_lansia_baru INTEGER DEFAULT 0,
-    total_lansia_kontrol INTEGER DEFAULT 0,
-    total_rujukan INTEGER DEFAULT 0,
-    total_kematian INTEGER DEFAULT 0,
-    status_laporan TEXT DEFAULT 'draft',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_puskesmas) REFERENCES puskesmas(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_petugas) REFERENCES users(id) ON DELETE CASCADE
-);
-```
-
-### 7. activities — Audit Log
+### 6. activities — Audit Log
 
 ```sql
 CREATE TABLE activities (
@@ -341,7 +317,7 @@ CREATE INDEX idx_activities_tanggal ON activities(created_at);
 
 **Logged Activities:** login, logout, create_lansia, update_lansia, delete_lansia, create_visit, update_visit, delete_visit, create_user, update_user, delete_user
 
-### 8. settings — System Configuration (SQLite)
+### 7. settings — System Configuration
 
 ```sql
 CREATE TABLE settings (
@@ -354,7 +330,7 @@ CREATE TABLE settings (
 
 **Sample:** `app_name` → "Sistem Pelaporan Lansia", `app_version` → "1.0.0", `total_lansia_target` → "500"
 
-### 9. tokens — Bearer Token Auth
+### 8. tokens — Bearer Token Auth
 
 ```sql
 CREATE TABLE tokens (
@@ -378,14 +354,18 @@ CREATE TABLE tokens (
 | `visits.jenis_kunjungan` | `baru`, `lama` |
 | `visits.rekomendasi` | `pemeriksaan_biasa`, `rawat_inap`, `rujuk_rs`, `rawat_jalan` |
 | `visits.status_disabilitas` | `tidak_ada`, `ringan`, `sedang`, `berat` |
-| `reports.status_laporan` | `draft`, `submitted`, `approved`, `rejected` |
+| `visits.gangguan_penglihatan` | `tidak_ada`, `ringan`, `berat` |
+| `visits.gangguan_pendengaran` | `tidak_ada`, `ringan`, `berat` |
+| `visits.risiko_jatuh` | `rendah`, `sedang`, `tinggi` |
+| `visits.status_kemandirian` | `mandiri`, `bantuan_sebagian`, `tergantung` |
+| `visits.gangguan_daya_ingat` | `tidak_ada`, `ada` |
 | `users.status` / `lansia.status_aktif` | `active`/`aktif`, `inactive`/`nonaktif` |
 
 ### Constraints & Indexes
 
 **Unique Constraints:** `users.username`, `lansia.nik`, `puskesmas.kode_puskesmas`, `settings.key`, `tokens.token`
 
-**Foreign Keys:** ON DELETE SET NULL untuk puskesmas/villages, CASCADE untuk visits/activities/tokens/reports
+**Foreign Keys:** ON DELETE SET NULL untuk puskesmas/villages, CASCADE untuk visits/activities/tokens
 
 **Indexes:** `visits(id_lansia, id_petugas, tanggal_kunjungan, status_kesehatan)`, `activities(id_user, created_at)`, `lansia(nik, status_aktif)`, `users(username)`
 
@@ -432,11 +412,8 @@ Token disimpan di `tokens` table dengan expiry 24 jam.
 | DELETE | `/api/lansia/{id}` | ✅ | **`admin`** |
 | GET | `/api/visits?start_date=&end_date=` | ✅ | any |
 | POST | `/api/visits` | ✅ | **`admin`** |
-| PUT | `/api/visits/{id}` | ✅ | any |
-| DELETE | `/api/visits/{id}` | ✅ | any |
 | GET | `/api/dashboard` | ✅ | any |
 | GET | `/api/laporan?start_date=&end_date=&rekomendasi=&status_risiko=&tujuan_rujukan=` | ✅ | **`super_admin`** |
-| POST | `/api/laporan` | ✅ | any |
 | GET | `/api/riwayat/{id}` | ✅ | any |
 | GET | `/api/users` | ✅ | **`super_admin`** |
 | POST | `/api/users` | ✅ | **`super_admin`** |
@@ -455,7 +432,7 @@ Token disimpan di `tokens` table dengan expiry 24 jam.
 | PUT | `/api/profile` | ✅ | any |
 | GET | `/api/activities` | ✅ | **`super_admin`** |
 | GET | `/api/settings` | ✅ | any |
-| POST | `/api/settings` | ✅ | **`super_admin`** |
+| PUT | `/api/settings` | ✅ | **`super_admin`** |
 
 ### Endpoint Detail: Login
 
@@ -514,6 +491,13 @@ Token disimpan di `tokens` table dengan expiry 24 jam.
 **POST /api/visits** — **Role: `admin` only** (requireRole('admin'))
 
 Required: `id_lansia`, `tanggal_kunjungan`, `jam_kunjungan`. Auto-calculate BMI.
+
+**Skrining Geriatri Dasar fields** (all optional, have defaults):
+- `gangguan_penglihatan`: `tidak_ada` / `ringan` / `berat` (default: `tidak_ada`)
+- `gangguan_pendengaran`: `tidak_ada` / `ringan` / `berat` (default: `tidak_ada`)
+- `risiko_jatuh`: `rendah` / `sedang` / `tinggi` (default: `rendah`)
+- `status_kemandirian`: `mandiri` / `bantuan_sebagian` / `tergantung` (default: `mandiri`)
+- `gangguan_daya_ingat`: `tidak_ada` / `ada` (default: `tidak_ada`)
 
 ### Endpoint Detail: Dashboard
 
@@ -584,35 +568,19 @@ header("Content-Type: application/json");
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 ```
 
-### Authentication Functions
+### Authentication Functions (API)
 
 ```php
-// Validate Bearer token from tokens table (24h expiry)
-function validateToken($conn) {
-    $headers = getallheaders();
-    $token = str_replace('Bearer ', '', $headers['Authorization'] ?? '');
-    // Check tokens table, verify expires_at > NOW()
-    // Return user_id or null
-}
+function validateToken($conn) { /* Bearer token from tokens table, 24h expiry */ }
+function requireAuth($conn)    { /* Returns userId or 401 */ }
+function requireRole($role, $conn, $userId = null) { /* Returns userId or 403 */ }
+```
 
-// Require authentication (returns userId or 401)
-function requireAuth($conn) {
-    $userId = validateToken($conn);
-    if (!$userId) respond(["success" => false, "message" => "Token diperlukan"], 401);
-    return $userId;
-}
+### Authentication Functions (PHP Pages — inc/functions.php)
 
-// Require specific role (returns userId or 403)
-function requireRole($role, $conn, $userId = null) {
-    if (!$userId) $userId = requireAuth($conn);
-    $stmt = $conn->prepare("SELECT role FROM users WHERE id = ? AND status = 'active'");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$user || $user['role'] !== $role) {
-        respond(["success" => false, "message" => "Forbidden"], 403);
-    }
-    return $userId;
-}
+```php
+function validateTokenFromDb($token) { /* Validate token, return userId */ }
+function loadUserFromToken()         { /* Auto-login PHP pages via Bearer token header */ }
 ```
 
 ### Router Pattern
@@ -654,10 +622,6 @@ $imt = $berat_badan / (($tinggi_badan / 100) ** 2);
 
 // Health classification (age-adjusted thresholds)
 // Digunakan oleh endpoint /api/health-classify
-function classifyHealth($params) { /* ... */ }
-
-// Seed villages (17 desa)
-function ensureVillages($conn) { /* INSERT if empty */ }
 ```
 
 ### Health Classification Thresholds
@@ -679,15 +643,17 @@ Age-adjusted untuk TD Sistol, TD Diastol, dan IMT:
 ### PHP Pages Functions (`inc/functions.php`)
 
 ```php
-isLoggedIn()           // Check $_SESSION['user']
-redirect($path)        // Redirect to path
-getUser()              // Get current user from session
-getUserRole()          // Get role from session
-isSuperAdmin()         // role === 'super_admin'
-isAdminStaff()         // role === 'admin'
-dbQuery($sql, $params) // Execute query
-dbFetch($sql, $params) // Fetch single row
-hitungUsiaPHP($tanggal_lahir)
+validateTokenFromDb($token)    // Validate Bearer token from DB
+loadUserFromToken()            // Auto-login PHP pages via token header
+isLoggedIn()                   // Check $_SESSION['user']
+redirect($path)                // Redirect to path
+getUser()                      // Get current user from session
+getUserRole()                  // Get role from session
+isSuperAdmin()                 // role === 'super_admin'
+isAdminStaff()                 // role === 'admin'
+dbQuery($sql, $params)         // Execute query
+dbFetch($sql, $params)         // Fetch single row
+hitungUsiaPHP($tanggal_lahir)  // Age from date
 hitungKategoriLansiaPHP($tanggal_lahir)
 getLabelKategoriLansia($kategori)    // Human-readable label
 getColorKategoriLansia($kategori)    // Tailwind color class
@@ -772,22 +738,27 @@ npm run build  # → dist/assets/index-[hash].js + .css
 | `Card` | `title`, `value`, `icon` | KPI card container |
 | `Toast` | `message`, `type` (success/error/warning/info), `duration` | Notifikasi |
 | `ConfirmDialog` | `message`, `onConfirm`, `onCancel` | Konfirmasi hapus |
-| `HealthIndicator` | `td_sistol`, `td_diastol`, `imt`, `nadi`, `rr`, `gula_darah`, `kolesterol`, `hemoglobin`, `spo2`, `suhu_tubuh`, `usia`, `jenis_kelamin`, `disabilitas`, `compact`, `status` | Klasifikasi kesehatan dari vital signs; compact mode = badge, full mode = card dengan issues list |
-| `Skeleton` | `count` | Loading placeholder |
+| `HealthIndicator` | `td_sistol`, `td_diastol`, `imt`, `nadi`, `rr`, `gula_darah`, `kolesterol`, `hemoglobin`, `spo2`, `suhu_tubuh`, `usia`, `jenis_kelamin`, `disabilitas`, `compact`, `status` | Klasifikasi kesehatan dari vital signs (via API); compact mode = badge, full mode = card dengan issues list |
 
-### Health Utilities (`src/utils/health.js`)
+### Utilities (`src/utils/constants.js`)
 
 ```javascript
-classifyHealth({ usia, td_sistol, td_diastol, imt, nadi, rr, disabilitas, gula_darah, kolesterol, hemoglobin, spo2, suhu_tubuh, jenis_kelamin })
-// Returns { status, status_db, label, issues[], recommendation }
-
 hitungUsia(tanggal_lahir)          // Age from date string
 hitungKategoriLansia(usia)         // { key, label, color }
 klasifikasiIMT(imt)                // { label, color }
 
-POLI_INTERNAL = ['Poli Umum', 'Poli Gigi', 'Poli KIA', 'Poli Kandungan', 'Poli Anak', 'Poli Mata', 'Poli THT', 'Poli Kulit', 'Poli Syaraf', 'Poli Jiwa', 'Poli Fisioterapi', 'Laboratorium', 'Konseling', 'IGD']
+POLI_INTERNAL = ['Poli Umum', 'Poli Gigi', 'Poli KIA', ...]
 
 statusKesehatanMapping = { sehat: { label, color }, sakit_ringan: { ... }, sakit_berat: { ... } }
+```
+
+### Health Classification (via API — single source of truth)
+
+```javascript
+// Frontend tidak punya logika klasifikasi sendiri.
+// Semua lewat API endpoint /api/health-classify
+const res = await api.getHealthClassify({ usia, td_sistol, ... });
+// res.data → { status, status_db, label, issues[], recommendation }
 ```
 
 ### State Management
@@ -815,7 +786,7 @@ App
     ├── /profile → ProfilePage
     ├── /activities → ActivityLogPage (role: super_admin)
     ├── /settings → SettingsPage (role: super_admin)
-    └── Toast (global)
+    └── Toast (global, via useToast hook)
 ```
 
 ---
@@ -846,7 +817,7 @@ async function request(endpoint, options = {}) {
 
 **API Methods (25+):**
 - `login(credentials)` — POST /api/login
-- `classifyHealth(params)` — GET /api/health-classify (public)
+- `getHealthClassify(params)` — GET /api/health-classify (public)
 - `getLansia(search)`, `createLansia(data)`, `updateLansia(id, data)`, `deleteLansia(id)`
 - `getVisits(startDate, endDate)`, `createVisit(data)`
 - `getDashboard()` — GET /api/dashboard
@@ -861,18 +832,19 @@ async function request(endpoint, options = {}) {
 
 ### Authentication Flow
 
-**React SPA (API):**
+**React SPA:**
 ```
 Login → POST /api/login → Backend verifikasi → Generate token (24h expiry)
 → Simpan token di localStorage → Sertakan di Authorization header
 → Setiap request: ambil token dari localStorage → set Bearer header
-→ Backend validasi dari tokens table → Logout: hapus token
+→ Backend validasi dari tokens table → Logout: hapus token + session
 ```
 
 **PHP Pages (Session):**
 ```
-login.php → POST → session_start() → $_SESSION['user'] = {...}
-→ Setiap halaman PHP: isLoggedIn() → Logout: session_destroy()
+login.php → POST → session_start() + generate token → $_SESSION['user'] = {...}
+→ Auto-login via token: jika tidak ada session cek Authorization header
+→ Logout: session_destroy() + hapus semua token user dari DB
 ```
 
 ### Error Handling Strategy
@@ -921,9 +893,10 @@ Backend mengizinkan semua origin (`*`) dengan methods GET, POST, PUT, DELETE, OP
 3. Input tanggal, jam, jenis kunjungan, status kesehatan
 4. Input vital signs (TD, BB, TB, nadi, RR, suhu, gula darah, kolesterol, hemoglobin, spo2)
 5. Auto-calculate BMI: `BB / (TB/100)^2`
-6. Klasifikasi kesehatan otomatis dari parameter vital (via `HealthIndicator` component / `classifyHealth()`)
-7. Input keluhan, diagnosa, tindakan, rujukan (pilih poli dari `POLI_INTERNAL`), rekomendasi, obat
-8. `POST /api/visits` (requireRole 'admin') → toast sukses → Dashboard refresh
+6. Klasifikasi kesehatan otomatis dari parameter vital (via `HealthIndicator` component yg panggil `api.getHealthClassify()`)
+7. **Input Skrining Geriatri Dasar** (5 dropdown — gangguan penglihatan, pendengaran, risiko jatuh, kemandirian, daya ingat)
+8. Input keluhan, diagnosa, tindakan, rujukan (pilih poli dari `POLI_INTERNAL`), rekomendasi, obat
+9. `POST /api/visits` (requireRole 'admin') → toast sukses → Dashboard refresh
 
 **Validation ranges:** TD 50-250/30-150, BB 20-200 kg, TB 100-220 cm, Nadi 40-200 bpm, Suhu 35-42°C
 
@@ -947,7 +920,7 @@ Backend mengizinkan semua origin (`*`) dengan methods GET, POST, PUT, DELETE, OP
 - Input: parameter vital + usia + jenis_kelamin
 - Output: status (sehat/sakit_ringan/sakit_berat), issues list, recommendation
 
-**Via komponen React:** `HealthIndicator` dengan props parameter vital
+**Via komponen React:** `HealthIndicator` dengan props parameter vital (internal panggil `api.getHealthClassify()`)
 - compact mode → badge warna (hijau/amber/merah)
 - full mode → card dengan daftar issues dan rekomendasi
 
@@ -1045,7 +1018,7 @@ function requireRole($role, $conn)    // Strict role check → returns userId or
 | PHP | 7.4+ (dengan PDO) |
 | Node.js | 14.x+ |
 | npm | 6.x+ |
-| Database | **SQLite 3** (default) atau MySQL 5.7+ |
+| Database | **SQLite 3** |
 | Web Server | Apache / Nginx |
 
 ### Development Setup
@@ -1059,35 +1032,16 @@ git clone <repo> pelaporanlansia
 cd pelaporanlansia
 npm install
 
-# 3. Initialize database (SQLite)
-php init_db.php
-# → Creates data/lansia.db with 9 tables, 4 users, 17 desa, 5 lansia, 5 visits
+# 3. Start development servers (2 terminals)
+npm run dev         # Frontend: http://localhost:5173 (proxy /api → localhost)
+php -S localhost:8000    # Backend API: http://localhost:8000/api
 
-# 4. Start servers (2 terminals)
-npm run dev         # Frontend: http://localhost:5173
-php -S localhost:8000   # Backend API: http://localhost:8000/api
-
-# 5. Login
-# Username: petugas1 / Password: password123
+# 4. Login via browser
+# Username: admin / Password: test123
+# Atau via PHP page: http://localhost:8000/login.php
 ```
 
-### MySQL Setup
-
-```bash
-# 1. Create database
-mysql -u root -p -e "CREATE DATABASE sistemlansia COLLATE utf8mb4_unicode_ci"
-
-# 2. Import schema
-mysql -u root -p sistemlansia < database.sql
-
-# 3. Update config/database.php
-define('DB_DRIVER', 'mysql');
-define('DB_HOST', 'localhost');
-define('DB_PORT', 3306);
-define('DB_NAME', 'sistemlansia');
-define('DB_USER', 'root');
-define('DB_PASS', 'your_password');
-```
+> Database SQLite (`data/lansia.db`) auto-created saat pertama kali akses API/PHP page. Jika ingin seed ulang, hapus file `.db` dan akses kembali.
 
 ### Production Deployment (Nginx)
 
@@ -1114,24 +1068,26 @@ server {
 
 ### Configuration (`config/database.php`)
 
+Koneksi database hanya SQLite. Tidak ada konfigurasi MySQL.
+
 ```php
-define('DB_DRIVER', 'sqlite');       // 'sqlite' or 'mysql'
-
-// SQLite config (auto-created if not exists)
-// Database file: __DIR__ . '/../data/lansia.db'
-
-// MySQL config (alternatif)
-define('DB_HOST', 'localhost');
-define('DB_PORT', 3306);
-define('DB_NAME', 'sistemlansia');
-define('DB_USER', 'root');
-define('DB_PASS', 'password');
+class Database {
+    public function getConnection() {
+        // SQLite file: __DIR__ . '/../data/lansia.db'
+        // Auto-create jika belum ada
+        // Auto-include init_db.php untuk seed data
+    }
+}
 ```
 
 ### Seed Data
 
-**14 desa** di seed otomatis oleh `init_db.php` dan `ensureVillages()` di `api/index.php`:
-Bligorejo, Doro, Dororejo, Harjosari, Kalimojosari, Kutosari, Larikan, Lemah Abang, Pungangan, Randusari, Rogoselo, Sawangan, Sidoharjo, Wungkal
+**14 desa** di seed oleh `init_db.php`: Bligorejo, Doro, Dororejo, Harjosari, Kalimojosari, Kutosari, Larikan, Lemah Abang, Pungangan, Randusari, Rogoselo, Sawangan, Sidoharjo, Wungkal
+
+**5 visits** di seed dengan data skrining geriatri:
+- Visit 1 (Hipertensi): penglihatan=ringan, pendengaran=tidak_ada, risiko jatuh=rendah, kemandirian=mandiri, daya ingat=tidak_ada
+- Visit 4 (PPOK berat): penglihatan=berat, pendengaran=berat, risiko jatuh=tinggi, kemandirian=tergantung, daya ingat=ada
+- Visit 5 (DM): penglihatan=ringan, risiko jatuh=sedang, kemandirian=bantuan_sebagian, daya ingat=ada
 
 ### Security
 
@@ -1158,4 +1114,4 @@ Bligorejo, Doro, Dororejo, Harjosari, Kalimojosari, Kutosari, Larikan, Lemah Aba
 
 > **Dokumen ini adalah gabungan ringkas dari seluruh dokumentasi sistem, diperbarui sesuai kode aktual per 4 Juni 2026.**
 >
-> **Last Updated:** 2026-06-04 | **Status:** Complete (Sync with actual codebase)
+> **Last Updated:** 2026-06-04 | **Status:** Complete (Synced with actual codebase after refactoring)

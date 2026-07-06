@@ -1,0 +1,62 @@
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+graph LR
+    %% Actors
+    Admin["<div style='text-align: center; line-height: 1.1; font-family: sans-serif;'><svg width='30' height='50' viewBox='0 0 30 50' style='display:block; margin:0 auto 2px auto;'><circle cx='15' cy='10' r='6' style='fill:none !important; stroke:#333333 !important; stroke-width:2px !important;'/><line x1='15' y1='16' x2='15' y2='32' style='stroke:#333333 !important; stroke-width:2px !important;'/><line x1='3' y1='22' x2='27' y2='22' style='stroke:#333333 !important; stroke-width:2px !important;'/><line x1='15' y1='32' x2='6' y2='46' style='stroke:#333333 !important; stroke-width:2px !important;'/><line x1='15' y1='32' x2='24' y2='46' style='stroke:#333333 !important; stroke-width:2px !important;'/></svg><b>Admin</b></div>"]
+    SuperAdmin["<div style='text-align: center; line-height: 1.1; font-family: sans-serif;'><svg width='30' height='50' viewBox='0 0 30 50' style='display:block; margin:0 auto 2px auto;'><circle cx='15' cy='10' r='6' style='fill:#fecaca !important; stroke:#991b1b !important; stroke-width:2px !important;'/><line x1='15' y1='16' x2='15' y2='32' style='stroke:#991b1b !important; stroke-width:2px !important;'/><line x1='3' y1='22' x2='27' y2='22' style='stroke:#991b1b !important; stroke-width:2px !important;'/><line x1='15' y1='32' x2='6' y2='46' style='stroke:#991b1b !important; stroke-width:2px !important;'/><line x1='15' y1='32' x2='24' y2='46' style='stroke:#991b1b !important; stroke-width:2px !important;'/></svg><b>Super Admin</b></div>"]
+
+    subgraph Pelansia [" "]
+        uc_login(["Login / Autentikasi"])
+        uc_profil(["Kelola Profil Diri"])
+        uc_dashboard(["Lihat Dashboard Analitik"])
+        uc_lansia_crud(["Kelola Data Lansia"])
+        uc_lansia_view(["Lihat Data Lansia<br>(Read-Only)"])
+        uc_kunjungan_add(["Catat Kunjungan & Skrining"])
+        uc_kunjungan_view(["Lihat Riwayat Kunjungan"])
+        uc_laporan(["Kelola & Ekspor Laporan"])
+        uc_users(["Kelola Data Pengguna"])
+        uc_pkm(["Kelola Data Puskesmas"])
+        uc_desa(["Kelola Data Desa"])
+        uc_settings(["Kelola Pengaturan Sistem"])
+        uc_log(["Lihat Log Aktivitas"])
+    end
+
+    %% Associations for Admin (Left)
+    Admin --- uc_login
+    Admin --- uc_profil
+    Admin --- uc_dashboard
+    Admin --- uc_lansia_crud
+    Admin --- uc_lansia_view
+    Admin --- uc_kunjungan_add
+    Admin --- uc_kunjungan_view
+
+    %% Associations for Super Admin (Right)
+    uc_login --- SuperAdmin
+    uc_profil --- SuperAdmin
+    uc_dashboard --- SuperAdmin
+    uc_lansia_view --- SuperAdmin
+    uc_kunjungan_view --- SuperAdmin
+    uc_laporan --- SuperAdmin
+    uc_users --- SuperAdmin
+    uc_pkm --- SuperAdmin
+    uc_desa --- SuperAdmin
+    uc_settings --- SuperAdmin
+    uc_log --- SuperAdmin
+
+    %% Styling to mimic classic UML
+    style Admin fill:none,stroke:none
+    style SuperAdmin fill:none,stroke:none
+    style Pelansia fill:#ffffff,stroke:#333333,stroke-width:2px,font-weight:bold
+    
+    style uc_login fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_profil fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_dashboard fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_lansia_crud fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_lansia_view fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_kunjungan_add fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_kunjungan_view fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_laporan fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_users fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_pkm fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_desa fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_settings fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px
+    style uc_log fill:#fdf4e3,stroke:#a8a29e,stroke-width:1.5px

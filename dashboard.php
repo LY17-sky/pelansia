@@ -367,7 +367,7 @@ $modalsData = [
                             <tbody>
                                 <?php foreach ($modal['data'] as $row): ?>
                                 <tr>
-                                    <td class="ps-4 fw-medium"><?= htmlspecialchars($row['nama_lengkap']) ?></td>
+                                    <td class="ps-4 fw-medium"><a href="detail-lansia.php?id=<?= $row['id'] ?>" class="text-decoration-none"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
                                     <td><?= $row['umur'] ?> thn</td>
                                     <td><?= $row['jenis_kelamin'] ?></td>
                                     <td class="text-truncate" style="max-width: 150px;" title="<?= htmlspecialchars($row['alamat']) ?>"><?= htmlspecialchars($row['alamat']) ?></td>

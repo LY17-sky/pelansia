@@ -30,9 +30,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $keluhan = $_POST['keluhan'] ?? '';
     $diagnosa = $_POST['diagnosa'] ?? '';
     $tindakan = $_POST['tindakan'] ?? '';
+    if ($tindakan === 'other') {
+        $tindakan = trim($_POST['tindakan_lainnya'] ?? '');
+    }
     $obat = $_POST['obat'] ?? '';
     
     $rujukan = $_POST['rujukan'] ?? '';
+    if ($rujukan === 'other') {
+        $rujukan = trim($_POST['rujukan_lainnya'] ?? '');
+    }
     
     // Get user id from session
     $user = getUser();
@@ -56,17 +62,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hemoglobin = $_POST['hemoglobin'] ?? null;
             $spo2 = $_POST['spo2'] ?? null;
             $suhu_tubuh = $_POST['suhu_tubuh'] ?? null;
-            $stmt = $conn->prepare("INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat, gula_darah, kolesterol, hemoglobin, spo2, suhu_tubuh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $gangguan_penglihatan = $_POST['gangguan_penglihatan'] ?? 'tidak_ada';
+            $gangguan_pendengaran = $_POST['gangguan_pendengaran'] ?? 'tidak_ada';
+            $risiko_jatuh = $_POST['risiko_jatuh'] ?? 'rendah';
+            $status_kemandirian = $_POST['status_kemandirian'] ?? 'mandiri';
+            $gangguan_daya_ingat = $_POST['gangguan_daya_ingat'] ?? 'tidak_ada';
+            $stmt = $conn->prepare("INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat, gula_darah, kolesterol, hemoglobin, spo2, suhu_tubuh, gangguan_penglihatan, gangguan_pendengaran, risiko_jatuh, status_kemandirian, gangguan_daya_ingat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $id_lansia, $id_petugas, $tanggal_kunjungan, $jam_kunjungan,
                 $jenis_kunjungan, $status_kesehatan, $tekanan_darah_sistol, $tekanan_darah_diastol,
                 $berat_badan, $tinggi_badan, $imt, $nadi, $respiratory_rate,
                 $status_disabilitas, $kelainan, $keluhan, $diagnosa, $tindakan, $rujukan,
-                $tujuan_rujukan, $rekomendasi, $obat, $gula_darah, $kolesterol, $hemoglobin, $spo2, $suhu_tubuh
+                $tujuan_rujukan, $rekomendasi, $obat, $gula_darah, $kolesterol, $hemoglobin, $spo2, $suhu_tubuh,
+                $gangguan_penglihatan, $gangguan_pendengaran, $risiko_jatuh, $status_kemandirian, $gangguan_daya_ingat
             ]);
             $message = 'Data kunjungan berhasil disimpan';
         } catch(PDOException $e) {
-            $error = 'Error: ' . $e->getMessage();
+            if (str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
+                $error = 'Data kunjungan dengan lansia, tanggal, dan jam yang sama sudah ada';
+            } else {
+                $error = 'Error: ' . $e->getMessage();
+            }
         }
     }
 }
@@ -190,6 +206,60 @@ ob_start();
 
             <hr class="my-4 border-2 opacity-10">
 
+            <!-- SECTION SKRINING GERIATRI DASAR -->
+            <div class="d-flex align-items-center mb-4">
+                <div class="card-icon-bg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">Skrining Geriatri Dasar</h5>
+                    <small class="text-muted">Penilaian fungsi geriatri</small>
+                </div>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-2">
+                    <label class="form-label">Gangguan Penglihatan</label>
+                    <select name="gangguan_penglihatan" class="form-select">
+                        <option value="tidak_ada">Tidak Ada</option>
+                        <option value="ringan">Ringan</option>
+                        <option value="berat">Berat</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Gangguan Pendengaran</label>
+                    <select name="gangguan_pendengaran" class="form-select">
+                        <option value="tidak_ada">Tidak Ada</option>
+                        <option value="ringan">Ringan</option>
+                        <option value="berat">Berat</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Risiko Jatuh</label>
+                    <select name="risiko_jatuh" class="form-select">
+                        <option value="rendah">Rendah</option>
+                        <option value="sedang">Sedang</option>
+                        <option value="tinggi">Tinggi</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status Kemandirian</label>
+                    <select name="status_kemandirian" class="form-select">
+                        <option value="mandiri">Mandiri</option>
+                        <option value="bantuan_sebagian">Bantuan Sebagian</option>
+                        <option value="tergantung">Tergantung</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Gangguan Daya Ingat</label>
+                    <select name="gangguan_daya_ingat" class="form-select">
+                        <option value="tidak_ada">Tidak Ada</option>
+                        <option value="ada">Ada</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr class="my-4 border-2 opacity-10">
+
             <!-- SECTION 2: Tindakan & Pengobatan -->
             <div class="d-flex align-items-center mb-4">
                 <div class="card-icon-bg" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
@@ -211,14 +281,16 @@ ob_start();
                 </div>
                 <div class="col-md-12">
                     <label class="form-label"><i class="bi bi-bandaid me-1"></i>Tindakan Lanjut Medis</label>
-                    <select name="tindakan" class="form-select">
+                    <select name="tindakan" class="form-select" id="tindakan" onchange="toggleOtherInput('tindakan', 'tindakan_lainnya')">
                         <option value="">Pilih Tindakan Lanjut Medis</option>
                         <option value="Rawat Jalan">Rawat Jalan</option>
                         <option value="Rawat Inap">Rawat Inap</option>
                         <option value="Rujuk ke RS">Rujuk ke RS</option>
                         <option value="Kontrol Ulang">Kontrol Ulang</option>
                         <option value="Pulang dengan Terapi">Pulang dengan Terapi</option>
+                        <option value="other">Lainnya</option>
                     </select>
+                    <input type="text" name="tindakan_lainnya" id="tindakan_lainnya" class="form-control" placeholder="Tulis tindakan lainnya..." style="display:none; margin-top:8px;">
                 </div>
                 <div class="col-md-12">
                     <label class="form-label"><i class="bi bi-capsule me-1"></i>Obat yang Diberikan</label>
@@ -226,7 +298,7 @@ ob_start();
                 </div>
                 <div class="col-md-12">
                     <label class="form-label"><i class="bi bi-hospital me-1"></i>Rujukan</label>
-                    <select name="rujukan" class="form-select">
+                    <select name="rujukan" class="form-select" id="rujukan" onchange="toggleOtherInput('rujukan', 'rujukan_lainnya'); toggleRujukanFields()">
                         <option value="">Pilih Rujukan</option>
                         <option value="Poli Umum">Poli Umum</option>
                         <option value="Poli Gigi">Poli Gigi</option>
@@ -234,7 +306,53 @@ ob_start();
                         <option value="IGD Tindakan">IGD Tindakan</option>
                         <option value="Laboratorium">Laboratorium</option>
                         <option value="Poli Vaksin (Coldchain)">Poli Vaksin (Coldchain)</option>
+                        <option value="other">Lainnya</option>
                     </select>
+                    <input type="text" name="rujukan_lainnya" id="rujukan_lainnya" class="form-control" placeholder="Tulis rujukan lainnya..." style="display:none; margin-top:8px;">
+                </div>
+
+                <!-- Lab Results (hanya muncul jika Rujukan = Laboratorium) -->
+                <div id="labFields" style="display:none;">
+                    <div class="row g-3 mt-2 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold text-primary"><i class="bi bi-flask me-1"></i>Hasil Laboratorium</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Gula Darah (mg/dL)</label>
+                            <input type="number" name="gula_darah" class="form-control" placeholder="Contoh: 120" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Kolesterol (mg/dL)</label>
+                            <input type="number" name="kolesterol" class="form-control" placeholder="Contoh: 200" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hemoglobin (g/dL)</label>
+                            <input type="number" step="0.1" name="hemoglobin" class="form-control" placeholder="Contoh: 13.5" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">SpO₂ (%)</label>
+                            <input type="number" name="spo2" class="form-control" placeholder="Contoh: 98" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tujuan Rujukan & Rekomendasi (hanya muncul jika Rujukan diisi) -->
+                <div id="rujukanFields" style="display:none;">
+                    <div class="row g-3 mt-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-pin-map me-1"></i>Tujuan Rujukan</label>
+                            <input type="text" name="tujuan_rujukan" class="form-control" placeholder="Tujuan rujukan...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-clipboard-check me-1"></i>Rekomendasi</label>
+                            <select name="rekomendasi" class="form-select">
+                                <option value="pemeriksaan_biasa">Pemeriksaan Biasa</option>
+                                <option value="rawat_inap">Rawat Inap</option>
+                                <option value="rujuk_rs">Rujuk RS</option>
+                                <option value="rawat_jalan">Rawat Jalan</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -311,6 +429,40 @@ function setWaktuSekarang() {
     tanggalInput.value = hari + '/' + bulan + '/' + tahun;
     jamInput.value = jam + ':' + menit;
 }
+
+function toggleOtherInput(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    if (select && input) {
+        input.style.display = select.value === 'other' ? 'block' : 'none';
+        if (select.value !== 'other') input.value = '';
+    }
+}
+
+function toggleRujukanFields() {
+    const rujukan = document.getElementById('rujukan');
+    const labFields = document.getElementById('labFields');
+    const rujukanFields = document.getElementById('rujukanFields');
+    if (!rujukan) return;
+
+    const val = rujukan.value;
+
+    if (labFields) {
+        labFields.style.display = val === 'Laboratorium' ? 'block' : 'none';
+    }
+
+    if (rujukanFields) {
+        rujukanFields.style.display = val !== '' && val !== 'Laboratorium' ? 'block' : 'none';
+        if (val === '' || val === 'Laboratorium') {
+            rujukanFields.querySelectorAll('input, select').forEach(el => {
+                if (el.type !== 'hidden') el.value = '';
+            });
+        }
+    }
+}
+
+// Run on page load in case of form reset
+document.addEventListener('DOMContentLoaded', toggleRujukanFields);
 
 window.onload = setWaktuSekarang;
 </script>

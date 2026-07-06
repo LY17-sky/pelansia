@@ -14,6 +14,25 @@ const labelKategori = { pra_lansia: 'Pra Lansia', lansia: 'Lansia', lansia_utama
 const labelRekomendasi = { pemeriksaan_biasa: 'Pemeriksaan Umum', rawat_inap: 'Rawat Inap', rujuk_rs: 'Rujuk RS', rawat_jalan: 'Rawat Jalan' };
 const colorRekomendasi = { pemeriksaan_biasa: 'bg-blue-100 text-blue-700', rawat_inap: 'bg-red-100 text-red-700', rujuk_rs: 'bg-orange-100 text-orange-700', rawat_jalan: 'bg-green-100 text-green-700' };
 
+const skriningLabels = {
+  risiko_jatuh: { tidak_ada: 'Tidak Ada', rendah: 'Risiko Rendah', tinggi: 'Risiko Tinggi' },
+  gangguan_kognitif: { tidak_ada: 'Tidak Ada', ringan: 'Gangguan Ringan', berat: 'Gangguan Berat' },
+  depresi: { tidak_ada: 'Tidak Ada', ringan: 'Depresi Ringan', berat: 'Depresi Berat' },
+  inkontinensia: { tidak_ada: 'Tidak Ada', kadang: 'Kadang-kadang', sering: 'Sering' },
+  malnutrisi: { tidak_ada: 'Tidak Ada', risiko: 'Risiko Malnutrisi', malnutrisi: 'Malnutrisi' },
+};
+const skriningColors = {
+  tidak_ada: 'bg-green-100 text-green-700',
+  rendah: 'bg-amber-100 text-amber-700',
+  ringan: 'bg-amber-100 text-amber-700',
+  kadang: 'bg-amber-100 text-amber-700',
+  risiko: 'bg-amber-100 text-amber-700',
+  tinggi: 'bg-red-100 text-red-700',
+  berat: 'bg-red-100 text-red-700',
+  sering: 'bg-red-100 text-red-700',
+  malnutrisi: 'bg-red-100 text-red-700',
+};
+
 export function RiwayatLansiaPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -140,6 +159,11 @@ export function RiwayatLansiaPage() {
                 <TableHead>TD</TableHead>
                 <TableHead>IMT</TableHead>
                 <TableHead>Diagnosa</TableHead>
+                <TableHead>Risiko Jatuh</TableHead>
+                <TableHead>Gangg. Kognitif</TableHead>
+                <TableHead>Depresi</TableHead>
+                <TableHead>Inkontinensia</TableHead>
+                <TableHead>Malnutrisi</TableHead>
                 <TableHead>Tujuan Rujukan</TableHead>
                 <TableHead>Rekomendasi</TableHead>
               </TableRow>
@@ -147,7 +171,7 @@ export function RiwayatLansiaPage() {
             <TableBody>
               {visits.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={14} className="text-center py-8 text-gray-500">
                     Belum ada kunjungan
                   </TableCell>
                 </TableRow>
@@ -184,6 +208,31 @@ export function RiwayatLansiaPage() {
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">{v.diagnosa || '-'}</TableCell>
                     <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[v.skrining_risiko_jatuh] || 'bg-gray-100 text-gray-600'}`}>
+                        {skriningLabels.risiko_jatuh[v.skrining_risiko_jatuh] || v.skrining_risiko_jatuh || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[v.skrining_gangguan_kognitif] || 'bg-gray-100 text-gray-600'}`}>
+                        {skriningLabels.gangguan_kognitif[v.skrining_gangguan_kognitif] || v.skrining_gangguan_kognitif || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[v.skrining_depresi] || 'bg-gray-100 text-gray-600'}`}>
+                        {skriningLabels.depresi[v.skrining_depresi] || v.skrining_depresi || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[v.skrining_inkontinensia] || 'bg-gray-100 text-gray-600'}`}>
+                        {skriningLabels.inkontinensia[v.skrining_inkontinensia] || v.skrining_inkontinensia || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[v.skrining_malnutrisi] || 'bg-gray-100 text-gray-600'}`}>
+                        {skriningLabels.malnutrisi[v.skrining_malnutrisi] || v.skrining_malnutrisi || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       {v.tujuan_rujukan ? (
                         <div className="flex flex-wrap gap-1">
                           {v.tujuan_rujukan.split(',').map((p, i) => (
@@ -203,7 +252,7 @@ export function RiwayatLansiaPage() {
                     </TableCell>
                   </TableRow>
                   <TableRow key={`${v.id}-detail`}>
-                    <TableCell colSpan={9} className="pb-4 pt-0 px-4">
+                    <TableCell colSpan={14} className="pb-4 pt-0 px-4">
                       <HealthIndicator
                         td_sistol={v.tekanan_darah_sistol}
                         td_diastol={v.tekanan_darah_diastol}

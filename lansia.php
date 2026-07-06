@@ -484,7 +484,7 @@ ob_start();
                       <?php $usia = hitungUsiaPHP($row['tanggal_lahir']); ?>
                       <tr>
                           <td class="text-nowrap" style="padding: 8px 8px;"><?= htmlspecialchars($row['nik']) ?></td>
-                           <td class="text-nowrap" style="padding: 8px 8px;"><?= htmlspecialchars($row['nama_lengkap']) ?></td>
+                           <td class="text-nowrap" style="padding: 8px 8px;"><a href="detail-lansia.php?id=<?= $row['id'] ?>" class="text-decoration-none fw-medium"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
                            <td class="text-nowrap" style="padding: 8px 8px;"><?= $usia ?> th</td>
                            <td class="text-nowrap" style="padding: 8px 8px;"><?= date('d/m/Y', strtotime($row['tanggal_lahir'])) ?></td>
                            <td class="text-nowrap" style="padding: 8px 8px;"><span class="badge bg-<?= $row['jenis_kelamin'] === 'L' ? 'primary' : 'danger' ?>"><?= $row['jenis_kelamin'] ?></span></td>

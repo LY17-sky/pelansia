@@ -309,6 +309,11 @@ if ($export === 'pdf') {
                 <th style="width:35px">BB</th>
                 <th style="width:35px">TB</th>
                 <th style="width:35px">IMT</th>
+                <th style="width:55px">G. Lihat</th>
+                <th style="width:55px">G. Dengar</th>
+                <th style="width:55px">Rsk Jatuh</th>
+                <th style="width:55px">Kemandirian</th>
+                <th style="width:50px">Daya Ingat</th>
                 <th style="width:100px">Keluhan</th>
                 <th style="width:100px">Diagnosa</th>
                 <th style="width:100px">Rujukan</th>
@@ -337,6 +342,11 @@ if ($export === 'pdf') {
                 <td style="text-align:center"><?= $row['berat_badan'] ?? '-' ?></td>
                 <td style="text-align:center"><?= $row['tinggi_badan'] ?? '-' ?></td>
                 <td style="text-align:center"><?= $row['imt'] ?? '-' ?></td>
+                <td style="text-align:center"><?= $row['gangguan_penglihatan'] === 'tidak_ada' ? '-' : ($row['gangguan_penglihatan'] === 'ringan' ? 'Ringan' : 'Berat') ?></td>
+                <td style="text-align:center"><?= $row['gangguan_pendengaran'] === 'tidak_ada' ? '-' : ($row['gangguan_pendengaran'] === 'ringan' ? 'Ringan' : 'Berat') ?></td>
+                <td style="text-align:center"><?= ucfirst($row['risiko_jatuh'] ?? '-') ?></td>
+                <td style="text-align:center"><?= $row['status_kemandirian'] === 'mandiri' ? 'Mandiri' : ($row['status_kemandirian'] === 'bantuan_sebagian' ? 'Bantuan' : 'Tergantung') ?></td>
+                <td style="text-align:center"><?= $row['gangguan_daya_ingat'] === 'tidak_ada' ? '-' : 'Ada' ?></td>
                 <td><?= htmlspecialchars($row['keluhan'] ?? '-') ?></td>
                 <td><?= htmlspecialchars($row['diagnosa'] ?? '-') ?></td>
                 <td><?= htmlspecialchars($row['rujukan'] ?? '-') ?></td>
@@ -344,7 +354,7 @@ if ($export === 'pdf') {
 <?php endforeach; ?>
 <?php if (empty($result)): ?>
             <tr>
-                <td colspan="14" style="text-align:center; padding: 20px; color: #999;">Tidak ada data kunjungan</td>
+                <td colspan="19" style="text-align:center; padding: 20px; color: #999;">Tidak ada data kunjungan</td>
             </tr>
 <?php endif; ?>
         </tbody>
@@ -434,6 +444,11 @@ ob_start();
                         <th>Nadi</th>
                         <th>RR</th>
                         <th>Disabilitas</th>
+                        <th>Gangg. Penglihatan</th>
+                        <th>Gangg. Pendengaran</th>
+                        <th>Risiko Jatuh</th>
+                        <th>Kemandirian</th>
+                        <th>Daya Ingat</th>
                         <th>Keluhan</th>
                         <th>Kelainan</th>
                         <th>Diagnosa</th>
@@ -445,7 +460,7 @@ ob_start();
                 <tbody>
                     <?php foreach ($result as $row): ?>
                     <tr>
-                        <td class="fw-medium"><?= htmlspecialchars($row['nama_lengkap']) ?></td>
+                        <td class="fw-medium"><a href="detail-lansia.php?id=<?= $row['id_lansia'] ?>" class="text-decoration-none"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
                         <td><?= date('d/m/Y', strtotime($row['tanggal_kunjungan'])) ?></td>
                         <td><?= $row['jam_kunjungan'] ?></td>
                         <td><span class="badge bg-<?= $row['jenis_kunjungan'] === 'baru' ? 'primary' : 'secondary' ?>"><?= $row['jenis_kunjungan'] === 'baru' ? 'Baru' : 'Lama' ?></span></td>
@@ -461,6 +476,11 @@ ob_start();
                         <td><?= $row['nadi'] ?? '-' ?></td>
                         <td><?= $row['respiratory_rate'] ?? '-' ?></td>
                         <td><?= $row['status_disabilitas'] === 'tidak_ada' ? '-' : $row['status_disabilitas'] ?></td>
+                        <td><span class="badge bg-<?= $row['gangguan_penglihatan'] === 'tidak_ada' ? 'success' : ($row['gangguan_penglihatan'] === 'ringan' ? 'warning' : 'danger') ?>"><?= $row['gangguan_penglihatan'] === 'tidak_ada' ? 'Tidak Ada' : ($row['gangguan_penglihatan'] === 'ringan' ? 'Ringan' : 'Berat') ?></span></td>
+                        <td><span class="badge bg-<?= $row['gangguan_pendengaran'] === 'tidak_ada' ? 'success' : ($row['gangguan_pendengaran'] === 'ringan' ? 'warning' : 'danger') ?>"><?= $row['gangguan_pendengaran'] === 'tidak_ada' ? 'Tidak Ada' : ($row['gangguan_pendengaran'] === 'ringan' ? 'Ringan' : 'Berat') ?></span></td>
+                        <td><span class="badge bg-<?= $row['risiko_jatuh'] === 'rendah' ? 'success' : ($row['risiko_jatuh'] === 'sedang' ? 'warning' : 'danger') ?>"><?= ucfirst($row['risiko_jatuh']) ?></span></td>
+                        <td><span class="badge bg-<?= $row['status_kemandirian'] === 'mandiri' ? 'success' : ($row['status_kemandirian'] === 'bantuan_sebagian' ? 'warning' : 'danger') ?>"><?= $row['status_kemandirian'] === 'mandiri' ? 'Mandiri' : ($row['status_kemandirian'] === 'bantuan_sebagian' ? 'Bantuan' : 'Tergantung') ?></span></td>
+                        <td><span class="badge bg-<?= $row['gangguan_daya_ingat'] === 'tidak_ada' ? 'success' : 'danger' ?>"><?= $row['gangguan_daya_ingat'] === 'tidak_ada' ? 'Tidak Ada' : 'Ada' ?></span></td>
                         <td><?= $row['keluhan'] ? htmlspecialchars(function_exists('mb_strimwidth') ? mb_strimwidth($row['keluhan'], 0, 20, '...') : (strlen($row['keluhan']) > 20 ? substr($row['keluhan'], 0, 20) . '...' : $row['keluhan'])) : '-' ?></td>
                         <td><?= $row['kelainan'] ? htmlspecialchars(function_exists('mb_strimwidth') ? mb_strimwidth($row['kelainan'], 0, 20, '...') : (strlen($row['kelainan']) > 20 ? substr($row['kelainan'], 0, 20) . '...' : $row['kelainan'])) : '-' ?></td>
                         <td><?= $row['diagnosa'] ? htmlspecialchars(function_exists('mb_strimwidth') ? mb_strimwidth($row['diagnosa'], 0, 20, '...') : (strlen($row['diagnosa']) > 20 ? substr($row['diagnosa'], 0, 20) . '...' : $row['diagnosa'])) : '-' ?></td>
@@ -471,7 +491,7 @@ ob_start();
                     <?php endforeach; ?>
                     <?php if (empty($result)): ?>
                     <tr>
-                        <td colspan="18" class="text-center text-muted py-4">
+                        <td colspan="23" class="text-center text-muted py-4">
                             <i class="bi bi-inbox me-2"></i>Tidak ada data
                         </td>
                     </tr>

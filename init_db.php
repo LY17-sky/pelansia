@@ -87,6 +87,11 @@ function initSqliteDatabase($conn) {
         hemoglobin REAL,
         spo2 INTEGER,
         suhu_tubuh REAL,
+        gangguan_penglihatan TEXT DEFAULT 'tidak_ada',
+        gangguan_pendengaran TEXT DEFAULT 'tidak_ada',
+        risiko_jatuh TEXT DEFAULT 'rendah',
+        status_kemandirian TEXT DEFAULT 'mandiri',
+        gangguan_daya_ingat TEXT DEFAULT 'tidak_ada',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (id_lansia) REFERENCES lansia(id) ON DELETE CASCADE,
@@ -158,11 +163,11 @@ function initSqliteDatabase($conn) {
         $conn->exec("INSERT INTO lansia (nik, nama_lengkap, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, id_desa, no_telepon, bpjs, status_kesehatan, kategori_lansia, status_risiko, nama_keluarga, no_telepon_keluarga) VALUES
             ('3172012345670005', 'H. Jenal Abidin', 'Medan', '1955-01-25', 'L', 'Jl. Pasar No. 8', 3, '081234567898', '1234567894', 'sakit_berat', 'pra_lansia', 'risiko_tinggi', 'Abidin', '081234567899')");
 
-        $visitsSql = "INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        $conn->prepare($visitsSql)->execute([1, 2, '2026-04-13', '08:30:00', 'baru', 'sakit_ringan', 160, 95, 65.0, 165.0, 23.9, 80, 20, 'tidak_ada', 'Tidak ada', 'Pusing dan badan lemah', 'Hipertensi Grade 1', 'Pemeriksaan tekanan darah, istirahat', 'Rujuk ke Poli Umum', 'Poli Umum', 'rawat_jalan', 'Captopril 12.5mg']);
-        $conn->prepare($visitsSql)->execute([2, 2, '2026-04-13', '09:15:00', 'lama', 'sakit_ringan', 140, 85, 55.0, 150.0, 24.4, 76, 18, 'ringan', 'Nyeri sendi', 'Nyeri sendi', 'Osteoartritis', 'Pemeriksaan fisik, gave obat', '', '', 'pemeriksaan_biasa', 'Kalium diklofenak 50mg']);
-        $conn->prepare($visitsSql)->execute([3, 2, '2026-04-13', '10:00:00', 'baru', 'sehat', 120, 80, 70.0, 170.0, 24.2, 72, 16, 'tidak_ada', 'Tidak ada', 'Batuk pilek', 'ISPA', 'Istirahat, banyak minum', '', '', 'pemeriksaan_biasa', 'Paracetamol 500mg']);
-        $conn->prepare($visitsSql)->execute([4, 3, '2026-04-13', '11:00:00', 'lama', 'sakit_ringan', 150, 90, 60.0, 155.0, 25.0, 100, 28, 'berat', 'Sesak nafas', 'Sesak nafas', 'PPOK eksaserbasi akut', 'Nebulizer, observasi', 'Rujuk IGD', 'IGD', 'rawat_inap', 'Salbutamol inhaler']);
-        $conn->prepare($visitsSql)->execute([5, 2, '2026-04-13', '11:30:00', 'lama', 'sakit_ringan', 130, 80, 75.0, 168.0, 26.6, 78, 18, 'tidak_ada', 'Tidak ada', 'Diabetes tidak terkontrol', 'DM tipo 2', 'Pemeriksaan GDS, edukasi', 'Rujuk ke Poli Umum', 'Poli Umum,Laboratorium', 'rawat_jalan', 'Metformin 500mg']);
+        $visitsSql = "INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat, gangguan_penglihatan, gangguan_pendengaran, risiko_jatuh, status_kemandirian, gangguan_daya_ingat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $conn->prepare($visitsSql)->execute([1, 2, '2026-04-13', '08:30:00', 'baru', 'sakit_ringan', 160, 95, 65.0, 165.0, 23.9, 80, 20, 'tidak_ada', 'Tidak ada', 'Pusing dan badan lemah', 'Hipertensi Grade 1', 'Pemeriksaan tekanan darah, istirahat', 'Rujuk ke Poli Umum', 'Poli Umum', 'rawat_jalan', 'Captopril 12.5mg', 'ringan', 'tidak_ada', 'rendah', 'mandiri', 'tidak_ada']);
+        $conn->prepare($visitsSql)->execute([2, 2, '2026-04-13', '09:15:00', 'lama', 'sakit_ringan', 140, 85, 55.0, 150.0, 24.4, 76, 18, 'ringan', 'Nyeri sendi', 'Nyeri sendi', 'Osteoartritis', 'Pemeriksaan fisik, gave obat', '', '', 'pemeriksaan_biasa', 'Kalium diklofenak 50mg', 'tidak_ada', 'ringan', 'rendah', 'mandiri', 'tidak_ada']);
+        $conn->prepare($visitsSql)->execute([3, 2, '2026-04-13', '10:00:00', 'baru', 'sehat', 120, 80, 70.0, 170.0, 24.2, 72, 16, 'tidak_ada', 'Tidak ada', 'Batuk pilek', 'ISPA', 'Istirahat, banyak minum', '', '', 'pemeriksaan_biasa', 'Paracetamol 500mg', 'tidak_ada', 'tidak_ada', 'rendah', 'mandiri', 'tidak_ada']);
+        $conn->prepare($visitsSql)->execute([4, 3, '2026-04-13', '11:00:00', 'lama', 'sakit_ringan', 150, 90, 60.0, 155.0, 25.0, 100, 28, 'berat', 'Sesak nafas', 'Sesak nafas', 'PPOK eksaserbasi akut', 'Nebulizer, observasi', 'Rujuk IGD', 'IGD', 'rawat_inap', 'Salbutamol inhaler', 'berat', 'berat', 'tinggi', 'tergantung', 'ada']);
+        $conn->prepare($visitsSql)->execute([5, 2, '2026-04-13', '11:30:00', 'lama', 'sakit_ringan', 130, 80, 75.0, 168.0, 26.6, 78, 18, 'tidak_ada', 'Tidak ada', 'Diabetes tidak terkontrol', 'DM tipo 2', 'Pemeriksaan GDS, edukasi', 'Rujuk ke Poli Umum', 'Poli Umum,Laboratorium', 'rawat_jalan', 'Metformin 500mg', 'ringan', 'tidak_ada', 'sedang', 'bantuan_sebagian', 'ada']);
     }
 }

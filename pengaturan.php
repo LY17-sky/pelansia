@@ -2,7 +2,6 @@
 require_once __DIR__ . '/inc/functions.php';
 
 if (!isLoggedIn()) redirect('login.php');
-if (!isSuperAdmin()) redirect('dashboard.php');
 
 $page = 'pengaturan';
 $pageTitle = 'Pengaturan Akun';
@@ -63,6 +62,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $error = 'Error: ' . $e->getMessage();
         }
+    }
+}
+
+// Tambah pengguna baru (super_admin only)
+if (isset($_POST['add_user']) && isSuperAdmin()) {
+    $new_username = trim($_POST['new_username'] ?? '');
+    $new_password = $_POST['new_password'] ?? '';
+    $new_nama = trim($_POST['new_nama'] ?? '');
+    $new_role = $_POST['new_role'] ?? 'admin';
+
+    if (empty($new_username) || empty($new_password) || empty($new_nama)) {
+        $error = 'Semua field wajib diisi';
+    } elseif (strlen($new_password) < 6) {
+        $error = 'Password minimal 6 karakter';
+    } else {
+        try {
+            $existing = dbFetch("SELECT id FROM users WHERE username = ?", [$new_username]);
+            if ($existing) {
+                $error = 'Username sudah digunakan';
+            } else {
+                $hash = password_hash($new_password, PASSWORD_DEFAULT);
+                dbQuery("INSERT INTO users (username, password, nama_lengkap, role, status) VALUES (?, ?, ?, ?, 'active')", [$new_username, $hash, $new_nama, $new_role]);
+                $message = 'Pengguna berhasil ditambahkan';
+            }
+        } catch (PDOException $e) {
+            $error = 'Error: ' . $e->getMessage();
+        }
+    }
+}
+
+// Nonaktifkan pengguna (super_admin only)
+if (isset($_GET['deactivate']) && isSuperAdmin()) {
+    $id = (int)$_GET['deactivate'];
+    if ($id !== (int)$_SESSION['user']['id']) {
+        dbQuery("UPDATE users SET status = 'inactive' WHERE id = ?", [$id]);
+        $message = 'Pengguna berhasil dinonaktifkan';
+    } else {
+        $error = 'Tidak dapat menonaktifkan akun sendiri';
     }
 }
 
@@ -144,6 +181,99 @@ ob_start();
         </form>
     </div>
 </div>
+
+<?php if (isSuperAdmin()): ?>
+<hr class="my-5">
+<div class="custom-card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">
+                <i class="bi bi-people me-2"></i>Kelola Pengguna
+            </h5>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahUser">
+                <i class="bi bi-plus-lg me-1"></i>Tambah Pengguna
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Username</th>
+                        <th>Nama Lengkap</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $users = dbFetchAll("SELECT * FROM users ORDER BY id"); $no = 1; ?>
+                    <?php foreach ($users as $u): ?>
+                    <tr>
+                        <td><?= $no++ ?></td>
+                        <td><?= htmlspecialchars($u['username']) ?></td>
+                        <td><?= htmlspecialchars($u['nama_lengkap']) ?></td>
+                        <td><span class="badge bg-<?= $u['role'] === 'super_admin' ? 'danger' : 'primary' ?>"><?= htmlspecialchars($u['role']) ?></span></td>
+                        <td><span class="badge bg-<?= $u['status'] === 'active' ? 'success' : 'secondary' ?>"><?= $u['status'] === 'active' ? 'Aktif' : 'Nonaktif' ?></span></td>
+                        <td>
+                            <?php if ($u['status'] === 'active' && $u['id'] != $_SESSION['user']['id']): ?>
+                            <a href="?deactivate=<?= $u['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Nonaktifkan pengguna <?= htmlspecialchars($u['username']) ?>?')">
+                                <i class="bi bi-person-x"></i> Nonaktifkan
+                            </a>
+                            <?php else: ?>
+                            <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Pengguna -->
+<div class="modal fade" id="modalTambahUser" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Tambah Pengguna Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" name="new_username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                        <input type="text" name="new_nama" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" name="new_password" class="form-control" minlength="6" required>
+                        <small class="text-muted">Minimal 6 karakter</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="new_role" class="form-select">
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" name="add_user" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php
 $content = ob_get_clean();

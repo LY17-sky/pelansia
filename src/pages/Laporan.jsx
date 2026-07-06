@@ -11,6 +11,25 @@ const colorRisiko = { risiko_rendah: 'bg-green-100 text-green-700', risiko_sedan
 const labelRekomendasi = { pemeriksaan_biasa: 'Pemeriksaan Umum', rawat_inap: 'Rawat Inap', rujuk_rs: 'Rujuk RS', rawat_jalan: 'Rawat Jalan' };
 const colorRekomendasi = { pemeriksaan_biasa: 'bg-blue-100 text-blue-700', rawat_inap: 'bg-red-100 text-red-700', rujuk_rs: 'bg-orange-100 text-orange-700', rawat_jalan: 'bg-green-100 text-green-700' };
 
+const skriningLabels = {
+  risiko_jatuh: { tidak_ada: 'Tidak Ada', rendah: 'Risiko Rendah', tinggi: 'Risiko Tinggi' },
+  gangguan_kognitif: { tidak_ada: 'Tidak Ada', ringan: 'Gangguan Ringan', berat: 'Gangguan Berat' },
+  depresi: { tidak_ada: 'Tidak Ada', ringan: 'Depresi Ringan', berat: 'Depresi Berat' },
+  inkontinensia: { tidak_ada: 'Tidak Ada', kadang: 'Kadang-kadang', sering: 'Sering' },
+  malnutrisi: { tidak_ada: 'Tidak Ada', risiko: 'Risiko Malnutrisi', malnutrisi: 'Malnutrisi' },
+};
+const skriningColors = {
+  tidak_ada: 'bg-green-100 text-green-700',
+  rendah: 'bg-amber-100 text-amber-700',
+  ringan: 'bg-amber-100 text-amber-700',
+  kadang: 'bg-amber-100 text-amber-700',
+  risiko: 'bg-amber-100 text-amber-700',
+  tinggi: 'bg-red-100 text-red-700',
+  berat: 'bg-red-100 text-red-700',
+  sering: 'bg-red-100 text-red-700',
+  malnutrisi: 'bg-red-100 text-red-700',
+};
+
 export function LaporanPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +62,7 @@ export function LaporanPage() {
   };
   
   const exportToCSV = () => {
-    const headers = ['Nama Lansia', 'NIK', 'Kategori', 'Tanggal', 'Status Kesehatan', 'TD', 'IMT', 'Nadi', 'RR'];
+    const headers = ['Nama Lansia', 'NIK', 'Kategori', 'Tanggal', 'Status Kesehatan', 'TD', 'IMT', 'Nadi', 'RR', 'Risiko Jatuh', 'Gangg. Kognitif', 'Depresi', 'Inkontinensia', 'Malnutrisi'];
     const rows = data.map(item => [
       item.nama_lengkap,
       item.nik,
@@ -54,6 +73,11 @@ export function LaporanPage() {
       item.imt || '-',
       item.nadi || '-',
       item.respiratory_rate || '-',
+      (item.skrining_risiko_jatuh && skriningLabels.risiko_jatuh[item.skrining_risiko_jatuh]) || item.skrining_risiko_jatuh || '-',
+      (item.skrining_gangguan_kognitif && skriningLabels.gangguan_kognitif[item.skrining_gangguan_kognitif]) || item.skrining_gangguan_kognitif || '-',
+      (item.skrining_depresi && skriningLabels.depresi[item.skrining_depresi]) || item.skrining_depresi || '-',
+      (item.skrining_inkontinensia && skriningLabels.inkontinensia[item.skrining_inkontinensia]) || item.skrining_inkontinensia || '-',
+      (item.skrining_malnutrisi && skriningLabels.malnutrisi[item.skrining_malnutrisi]) || item.skrining_malnutrisi || '-',
     ]);
     
     const csvContent = [headers, ...rows]
@@ -68,7 +92,7 @@ export function LaporanPage() {
   };
   
   const exportToExcel = () => {
-    const headers = ['Nama Lansia', 'NIK', 'Kategori', 'Tanggal', 'Status Kesehatan', 'TD Sistol', 'TD Diastol', 'IMT', 'Nadi', 'RR'];
+    const headers = ['Nama Lansia', 'NIK', 'Kategori', 'Tanggal', 'Status Kesehatan', 'TD Sistol', 'TD Diastol', 'IMT', 'Nadi', 'RR', 'Risiko Jatuh', 'Gangg. Kognitif', 'Depresi', 'Inkontinensia', 'Malnutrisi'];
     const rows = data.map(item => [
       item.nama_lengkap,
       item.nik,
@@ -80,6 +104,11 @@ export function LaporanPage() {
       item.imt || '-',
       item.nadi || '-',
       item.respiratory_rate || '-',
+      (item.skrining_risiko_jatuh && skriningLabels.risiko_jatuh[item.skrining_risiko_jatuh]) || item.skrining_risiko_jatuh || '-',
+      (item.skrining_gangguan_kognitif && skriningLabels.gangguan_kognitif[item.skrining_gangguan_kognitif]) || item.skrining_gangguan_kognitif || '-',
+      (item.skrining_depresi && skriningLabels.depresi[item.skrining_depresi]) || item.skrining_depresi || '-',
+      (item.skrining_inkontinensia && skriningLabels.inkontinensia[item.skrining_inkontinensia]) || item.skrining_inkontinensia || '-',
+      (item.skrining_malnutrisi && skriningLabels.malnutrisi[item.skrining_malnutrisi]) || item.skrining_malnutrisi || '-',
     ]);
     
     let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>';
@@ -186,12 +215,17 @@ export function LaporanPage() {
                   <TableHead>IMT</TableHead>
                   <TableHead>Nadi</TableHead>
                   <TableHead>RR</TableHead>
+                  <TableHead>Risiko Jatuh</TableHead>
+                  <TableHead>Gangg. Kognitif</TableHead>
+                  <TableHead>Depresi</TableHead>
+                  <TableHead>Inkontinensia</TableHead>
+                  <TableHead>Malnutrisi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={13} className="text-center py-8 text-gray-500">
                       Tidak ada data
                     </TableCell>
                   </TableRow>
@@ -233,6 +267,31 @@ export function LaporanPage() {
                       </TableCell>
                       <TableCell>{item.nadi || '-'}</TableCell>
                       <TableCell>{item.respiratory_rate || '-'}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[item.skrining_risiko_jatuh] || 'bg-gray-100 text-gray-600'}`}>
+                          {skriningLabels.risiko_jatuh[item.skrining_risiko_jatuh] || item.skrining_risiko_jatuh || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[item.skrining_gangguan_kognitif] || 'bg-gray-100 text-gray-600'}`}>
+                          {skriningLabels.gangguan_kognitif[item.skrining_gangguan_kognitif] || item.skrining_gangguan_kognitif || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[item.skrining_depresi] || 'bg-gray-100 text-gray-600'}`}>
+                          {skriningLabels.depresi[item.skrining_depresi] || item.skrining_depresi || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[item.skrining_inkontinensia] || 'bg-gray-100 text-gray-600'}`}>
+                          {skriningLabels.inkontinensia[item.skrining_inkontinensia] || item.skrining_inkontinensia || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${skriningColors[item.skrining_malnutrisi] || 'bg-gray-100 text-gray-600'}`}>
+                          {skriningLabels.malnutrisi[item.skrining_malnutrisi] || item.skrining_malnutrisi || '-'}
+                        </span>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

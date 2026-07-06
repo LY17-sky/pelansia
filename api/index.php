@@ -67,9 +67,6 @@ function requireRole($role, $conn, $userId = null) {
     return $userId;
 }
 
-// Auto-migration for new columns (SQLite — wrapped in try/catch because no IF NOT EXISTS)
-try { $conn->exec("ALTER TABLE lansia ADD COLUMN tempat_lahir TEXT DEFAULT ''"); } catch(PDOException $e) {}
-try { $conn->exec("ALTER TABLE lansia ADD COLUMN status_kesehatan TEXT DEFAULT 'sehat'"); } catch(PDOException $e) {}
 // Ensure tokens table exists (run every request for compatibility with existing DBs)
 try {
     $conn->exec("CREATE TABLE IF NOT EXISTS tokens (
@@ -309,7 +306,7 @@ switch ($endpoint) {
                 $tujuanRujukan = is_array($data['tujuan_rujukan']) ? implode(',', $data['tujuan_rujukan']) : $data['tujuan_rujukan'];
             }
             
-            $stmt = $conn->prepare("INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat, gula_darah, kolesterol, hemoglobin, spo2, suhu_tubuh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO visits (id_lansia, id_petugas, tanggal_kunjungan, jam_kunjungan, jenis_kunjungan, status_kesehatan, tekanan_darah_sistol, tekanan_darah_diastol, berat_badan, tinggi_badan, imt, nadi, respiratory_rate, status_disabilitas, kelainan, keluhan, diagnosa, tindakan, rujukan, tujuan_rujukan, rekomendasi, obat, gula_darah, kolesterol, hemoglobin, spo2, suhu_tubuh, gangguan_penglihatan, gangguan_pendengaran, risiko_jatuh, status_kemandirian, gangguan_daya_ingat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
                 $data['id_lansia'],
@@ -338,7 +335,12 @@ switch ($endpoint) {
                 $data['kolesterol'] ?? null,
                 $data['hemoglobin'] ?? null,
                 $data['spo2'] ?? null,
-                $data['suhu_tubuh'] ?? null
+                $data['suhu_tubuh'] ?? null,
+                $data['gangguan_penglihatan'] ?? 'tidak_ada',
+                $data['gangguan_pendengaran'] ?? 'tidak_ada',
+                $data['risiko_jatuh'] ?? 'rendah',
+                $data['status_kemandirian'] ?? 'mandiri',
+                $data['gangguan_daya_ingat'] ?? 'tidak_ada'
             ]);
             
             if ($stmt->rowCount() > 0) {

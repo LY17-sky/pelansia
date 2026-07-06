@@ -433,6 +433,11 @@ ob_start();
                         <th>Status</th>
                         <th>TD</th>
                         <th>IMT</th>
+                        <th>Gangg. Penglihatan</th>
+                        <th>Gangg. Pendengaran</th>
+                        <th>Risiko Jatuh</th>
+                        <th>Kemandirian</th>
+                        <th>Daya Ingat</th>
                         <th>Rekomendasi</th>
                     </tr>
                 </thead>
@@ -463,6 +468,11 @@ ob_start();
                         </td>
                         <td><?= ($visit['tekanan_darah_sistol'] ?? '') && ($visit['tekanan_darah_diastol'] ?? '') ? $visit['tekanan_darah_sistol'] . '/' . $visit['tekanan_darah_diastol'] : '-' ?></td>
                         <td><?= $visit['imt'] ? number_format($visit['imt'], 1) : '-' ?></td>
+                        <td><span class="badge bg-<?= $visit['gangguan_penglihatan'] === 'tidak_ada' ? 'success' : ($visit['gangguan_penglihatan'] === 'ringan' ? 'warning' : 'danger') ?>"><?= $visit['gangguan_penglihatan'] === 'tidak_ada' ? 'Tidak Ada' : ($visit['gangguan_penglihatan'] === 'ringan' ? 'Ringan' : 'Berat') ?></span></td>
+                        <td><span class="badge bg-<?= $visit['gangguan_pendengaran'] === 'tidak_ada' ? 'success' : ($visit['gangguan_pendengaran'] === 'ringan' ? 'warning' : 'danger') ?>"><?= $visit['gangguan_pendengaran'] === 'tidak_ada' ? 'Tidak Ada' : ($visit['gangguan_pendengaran'] === 'ringan' ? 'Ringan' : 'Berat') ?></span></td>
+                        <td><span class="badge bg-<?= $visit['risiko_jatuh'] === 'rendah' ? 'success' : ($visit['risiko_jatuh'] === 'sedang' ? 'warning' : 'danger') ?>"><?= ucfirst($visit['risiko_jatuh']) ?></span></td>
+                        <td><span class="badge bg-<?= $visit['status_kemandirian'] === 'mandiri' ? 'success' : ($visit['status_kemandirian'] === 'bantuan_sebagian' ? 'warning' : 'danger') ?>"><?= $visit['status_kemandirian'] === 'mandiri' ? 'Mandiri' : ($visit['status_kemandirian'] === 'bantuan_sebagian' ? 'Bantuan' : 'Tergantung') ?></span></td>
+                        <td><span class="badge bg-<?= $visit['gangguan_daya_ingat'] === 'tidak_ada' ? 'success' : 'danger' ?>"><?= $visit['gangguan_daya_ingat'] === 'tidak_ada' ? 'Tidak Ada' : 'Ada' ?></span></td>
                         <td>
                             <?php if ($visit['rekomendasi']): ?>
                             <span class="badge-custom bg-<?= 
@@ -483,7 +493,7 @@ ob_start();
                     </tr>
                     <!-- Detail Row -->
                     <tr class="detail-row" id="detail-<?= $visit['id'] ?>" style="display: none;">
-                        <td colspan="9" class="detail-row-content">
+                        <td colspan="14" class="detail-row-content">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="detail-section">
@@ -552,6 +562,50 @@ ob_start();
                                         <div class="detail-item">
                                             <span class="detail-label">Keluhan</span>
                                             <span class="detail-value"><?= htmlspecialchars($visit['keluhan'] ?? '-') ?></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-section">
+                                        <h6>Skrining Geriatri Dasar</h6>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Gangguan Penglihatan</span>
+                                            <span class="detail-value">
+                                                <span class="badge bg-<?= $visit['gangguan_penglihatan'] === 'tidak_ada' ? 'success' : ($visit['gangguan_penglihatan'] === 'ringan' ? 'warning' : 'danger') ?>">
+                                                    <?= $visit['gangguan_penglihatan'] === 'tidak_ada' ? 'Tidak Ada' : ($visit['gangguan_penglihatan'] === 'ringan' ? 'Ringan' : 'Berat') ?>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Gangguan Pendengaran</span>
+                                            <span class="detail-value">
+                                                <span class="badge bg-<?= $visit['gangguan_pendengaran'] === 'tidak_ada' ? 'success' : ($visit['gangguan_pendengaran'] === 'ringan' ? 'warning' : 'danger') ?>">
+                                                    <?= $visit['gangguan_pendengaran'] === 'tidak_ada' ? 'Tidak Ada' : ($visit['gangguan_pendengaran'] === 'ringan' ? 'Ringan' : 'Berat') ?>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Risiko Jatuh</span>
+                                            <span class="detail-value">
+                                                <span class="badge bg-<?= $visit['risiko_jatuh'] === 'rendah' ? 'success' : ($visit['risiko_jatuh'] === 'sedang' ? 'warning' : 'danger') ?>">
+                                                    <?= ucfirst($visit['risiko_jatuh']) ?>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Status Kemandirian</span>
+                                            <span class="detail-value">
+                                                <span class="badge bg-<?= $visit['status_kemandirian'] === 'mandiri' ? 'success' : ($visit['status_kemandirian'] === 'bantuan_sebagian' ? 'warning' : 'danger') ?>">
+                                                    <?= $visit['status_kemandirian'] === 'mandiri' ? 'Mandiri' : ($visit['status_kemandirian'] === 'bantuan_sebagian' ? 'Bantuan Sebagian' : 'Tergantung') ?>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Gangguan Daya Ingat</span>
+                                            <span class="detail-value">
+                                                <span class="badge bg-<?= $visit['gangguan_daya_ingat'] === 'tidak_ada' ? 'success' : 'danger' ?>">
+                                                    <?= $visit['gangguan_daya_ingat'] === 'tidak_ada' ? 'Tidak Ada' : 'Ada' ?>
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

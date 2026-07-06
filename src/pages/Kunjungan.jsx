@@ -49,6 +49,11 @@ export function KunjunganPage() {
     hemoglobin: '',
     spo2: '',
     suhu_tubuh: '',
+    skrining_risiko_jatuh: 'tidak_ada',
+    skrining_gangguan_kognitif: 'tidak_ada',
+    skrining_depresi: 'tidak_ada',
+    skrining_inkontinensia: 'tidak_ada',
+    skrining_malnutrisi: 'tidak_ada',
   });
   
   useEffect(() => {
@@ -154,6 +159,11 @@ export function KunjunganPage() {
         hemoglobin: formData.hemoglobin ? parseFloat(formData.hemoglobin) : null,
         spo2: formData.spo2 ? parseInt(formData.spo2) : null,
         suhu_tubuh: formData.suhu_tubuh ? parseFloat(formData.suhu_tubuh) : null,
+        skrining_risiko_jatuh: formData.skrining_risiko_jatuh,
+        skrining_gangguan_kognitif: formData.skrining_gangguan_kognitif,
+        skrining_depresi: formData.skrining_depresi,
+        skrining_inkontinensia: formData.skrining_inkontinensia,
+        skrining_malnutrisi: formData.skrining_malnutrisi,
       };
       
       dataToSend.status_kesehatan = classification.status_db;
@@ -190,6 +200,11 @@ export function KunjunganPage() {
           hemoglobin: '',
           spo2: '',
           suhu_tubuh: '',
+          skrining_risiko_jatuh: 'tidak_ada',
+          skrining_gangguan_kognitif: 'tidak_ada',
+          skrining_depresi: 'tidak_ada',
+          skrining_inkontinensia: 'tidak_ada',
+          skrining_malnutrisi: 'tidak_ada',
         });
       }, 2000);
     } catch (error) {
@@ -488,6 +503,61 @@ export function KunjunganPage() {
           </CardContent>
         </Card>
         
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle><Activity className="w-5 h-5 inline mr-2 text-[#4A90D9]" />Skrining Geriatri Dasar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Risiko Jatuh</label>
+                <select name="skrining_risiko_jatuh" value={formData.skrining_risiko_jatuh} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4A90D9]">
+                  <option value="tidak_ada">Tidak Ada Risiko</option>
+                  <option value="rendah">Risiko Rendah</option>
+                  <option value="tinggi">Risiko Tinggi</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gangguan Kognitif</label>
+                <select name="skrining_gangguan_kognitif" value={formData.skrining_gangguan_kognitif} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4A90D9]">
+                  <option value="tidak_ada">Tidak Ada Gangguan</option>
+                  <option value="ringan">Gangguan Ringan</option>
+                  <option value="berat">Gangguan Berat</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Depresi</label>
+                <select name="skrining_depresi" value={formData.skrining_depresi} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4A90D9]">
+                  <option value="tidak_ada">Tidak Ada Depresi</option>
+                  <option value="ringan">Depresi Ringan</option>
+                  <option value="berat">Depresi Berat</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Inkontinensia</label>
+                <select name="skrining_inkontinensia" value={formData.skrining_inkontinensia} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4A90D9]">
+                  <option value="tidak_ada">Tidak Ada</option>
+                  <option value="kadang">Kadang-kadang</option>
+                  <option value="sering">Sering</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Malnutrisi</label>
+                <select name="skrining_malnutrisi" value={formData.skrining_malnutrisi} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4A90D9]">
+                  <option value="tidak_ada">Tidak Ada Risiko</option>
+                  <option value="risiko">Risiko Malnutrisi</option>
+                  <option value="malnutrisi">Malnutrisi</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <HealthIndicator
           td_sistol={parseTD(formData.tekanan_darah).sistol}
           td_diastol={parseTD(formData.tekanan_darah).diastol}
@@ -672,6 +742,11 @@ export function KunjunganPage() {
                 hemoglobin: '',
                 spo2: '',
                 suhu_tubuh: '',
+                skrining_risiko_jatuh: 'tidak_ada',
+                skrining_gangguan_kognitif: 'tidak_ada',
+                skrining_depresi: 'tidak_ada',
+                skrining_inkontinensia: 'tidak_ada',
+                skrining_malnutrisi: 'tidak_ada',
               });
               setSelectedLansia(null);
             }}
