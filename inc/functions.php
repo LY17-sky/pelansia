@@ -9,6 +9,20 @@ require_once __DIR__ . '/../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 
+try {
+    $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        related_id INTEGER,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )");
+} catch(PDOException $e) {}
+
 if (!$conn) {
     $db_error = "Tidak dapat terhubung ke database.";
 }
@@ -166,6 +180,83 @@ function logActivity($user_id, $activity, $description) {
         $stmt->execute([$user_id, $activity, $description]);
     } catch(PDOException $e) {
         error_log("Activity Log Error: " . $e->getMessage());
+    }
+}
+
+function createNotification($user_id, $type, $title, $message, $related_id = null) {
+    $conn = getDbConn();
+    if (!$conn) return;
+    try {
+        $stmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$user_id, $type, $title, $message, $related_id]);
+    } catch(PDOException $e) {
+        error_log("Notification Error: " . $e->getMessage());
+    }
+}
+
+function getUnreadNotifCount($user_id) {
+    $conn = getDbConn();
+    if (!$conn) return 0;
+    try {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0");
+        $stmt->execute([$user_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['count'] : 0;
+    } catch(PDOException $e) {
+        return 0;
+    }
+}
+
+function getNotifications($user_id, $limit = 5) {
+    $conn = getDbConn();
+    if (!$conn) return [];
+    try {
+        $stmt = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?");
+        $stmt->execute([$user_id, $limit]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        error_log("Notification Error: " . $e->getMessage());
+        return [];
+    }
+}
+
+function getTimeAgo($datetime) {
+    if (!$datetime) return '';
+    try {
+        $now = new DateTime();
+        $then = new DateTime($datetime);
+        $diff = $now->diff($then);
+        if ($diff->y > 0) return $diff->y . ' tahun lalu';
+        if ($diff->m > 0) return $diff->m . ' bulan lalu';
+        if ($diff->d > 0) return $diff->d . ' hari lalu';
+        if ($diff->h > 0) return $diff->h . ' jam lalu';
+        if ($diff->i > 0) return $diff->i . ' menit lalu';
+        return 'Baru saja';
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+function broadcastNotification($type, $title, $message, $related_id = null, $exclude_user_id = null, $target_role = null) {
+    $conn = getDbConn();
+    if (!$conn) return;
+    $sql = "SELECT id FROM users WHERE status = 'active'";
+    $params = [];
+    if ($target_role) {
+        $sql .= " AND role = ?";
+        $params[] = $target_role;
+    }
+    try {
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($users as $user) {
+            if ($exclude_user_id && $user['id'] == $exclude_user_id) continue;
+            $insert = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
+            $insert->execute([$user['id'], $type, $title, $message, $related_id]);
+        }
+    } catch(PDOException $e) {
+        error_log("Broadcast Error: " . $e->getMessage());
     }
 }
 ?>

@@ -79,6 +79,21 @@ try {
     )");
 } catch(PDOException $e) {}
 
+// Ensure notifications table exists
+try {
+    $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        related_id INTEGER,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )");
+} catch(PDOException $e) {}
+
 function hitungUsia($tanggal_lahir) {
     if (!$tanggal_lahir) return 0;
     try {
@@ -228,7 +243,29 @@ switch ($endpoint) {
             ]);
             
             if ($stmt->rowCount() > 0) {
-                respond(["success" => true, "message" => "Data berhasil disimpan", "id" => $conn->lastInsertId()]);
+                $newId = $conn->lastInsertId();
+                $userStmt = $conn->prepare("SELECT nama_lengkap FROM users WHERE id = ?");
+                $userStmt->execute([$userId]);
+                $userName = $userStmt->fetchColumn() ?: 'Pengguna';
+                $lansiaName = $data['nama_lengkap'];
+                $insertNotif = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
+                $insertNotif->execute([$userId, 'lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} berhasil ditambahkan", $newId]);
+                $superStmt = $conn->query("SELECT id FROM users WHERE role = 'super_admin' AND status = 'active'");
+                while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                    if ($sa['id'] != $userId) {
+                        $insertNotif->execute([$sa['id'], 'lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} ditambahkan oleh {$userName}", $newId]);
+                    }
+                }
+                if (($data['status_risiko'] ?? '') === 'risiko_tinggi') {
+                    $insertNotif->execute([$userId, 'lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi", $newId]);
+                    $superStmt->execute();
+                    while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                        if ($sa['id'] != $userId) {
+                            $insertNotif->execute([$sa['id'], 'lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi", $newId]);
+                        }
+                    }
+                }
+                respond(["success" => true, "message" => "Data berhasil disimpan", "id" => $newId]);
             }
             respond(["success" => false, "message" => "Gagal menyimpan data"], 500);
         }
@@ -344,7 +381,32 @@ switch ($endpoint) {
             ]);
             
             if ($stmt->rowCount() > 0) {
-                respond(["success" => true, "message" => "Kunjungan berhasil disimpan", "id" => $conn->lastInsertId()]);
+                $visitId = $conn->lastInsertId();
+                $lansiaStmt = $conn->prepare("SELECT nama_lengkap FROM lansia WHERE id = ?");
+                $lansiaStmt->execute([$data['id_lansia']]);
+                $lansiaName = $lansiaStmt->fetchColumn() ?: 'Unknown';
+                $userStmt = $conn->prepare("SELECT nama_lengkap FROM users WHERE id = ?");
+                $userStmt->execute([$userId]);
+                $userName = $userStmt->fetchColumn() ?: 'Pengguna';
+                $diagnosa = $data['diagnosa'] ?? '';
+                $insertNotif = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
+                $insertNotif->execute([$userId, 'kunjungan_baru', 'Kunjungan Baru', "Kunjungan: {$lansiaName} — Diagnosa: {$diagnosa}", $visitId]);
+                $superStmt = $conn->query("SELECT id FROM users WHERE role = 'super_admin' AND status = 'active'");
+                while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                    if ($sa['id'] != $userId) {
+                        $insertNotif->execute([$sa['id'], 'kunjungan_baru', 'Kunjungan Baru', "Kunjungan {$lansiaName} oleh {$userName} — Diagnosa: {$diagnosa}", $visitId]);
+                    }
+                }
+                if (($data['status_kesehatan'] ?? '') === 'sakit_berat') {
+                    $insertNotif->execute([$userId, 'kesehatan_memburuk', 'Status Kesehatan Memburuk', "Status {$lansiaName} memburuk: Sakit Berat", $visitId]);
+                    $superStmt->execute();
+                    while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                        if ($sa['id'] != $userId) {
+                            $insertNotif->execute([$sa['id'], 'kesehatan_memburuk', 'Status Kesehatan Memburuk', "Status {$lansiaName} memburuk: Sakit Berat (oleh {$userName})", $visitId]);
+                        }
+                    }
+                }
+                respond(["success" => true, "message" => "Kunjungan berhasil disimpan", "id" => $visitId]);
             }
             respond(["success" => false, "message" => "Gagal menyimpan kunjungan"], 500);
         }
@@ -880,6 +942,42 @@ switch ($endpoint) {
                 ]
             ]);
         }
+        break;
+    
+    case 'notifications':
+        $userId = requireAuth($conn);
+        $sub = $request[1] ?? '';
+        
+        if ($method === 'GET' && $sub === 'count') {
+            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0");
+            $stmt->execute([$userId]);
+            respond(["success" => true, "count" => (int)$stmt->fetchColumn()]);
+        }
+        
+        if ($method === 'GET') {
+            $stmt = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+            $stmt->execute([$userId]);
+            respond(["success" => true, "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        }
+        
+        if ($method === 'POST') {
+            $data = getJsonInput();
+            $stmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$userId, $data['type'], $data['title'], $data['message'], $data['related_id'] ?? null]);
+            respond(["success" => true, "message" => "Notifikasi dibuat", "id" => $conn->lastInsertId()]);
+        }
+        
+        if ($method === 'PUT' && $sub === 'read-all') {
+            $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?")->execute([$userId]);
+            respond(["success" => true, "message" => "Semua notifikasi ditandai dibaca"]);
+        }
+        
+        if ($method === 'PUT' && $sub === 'read' && $request[2]) {
+            $conn->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?")->execute([$request[2], $userId]);
+            respond(["success" => true, "message" => "Notifikasi ditandai dibaca"]);
+        }
+        
+        respond(["success" => false, "message" => "Method not allowed"], 405);
         break;
     
     default:

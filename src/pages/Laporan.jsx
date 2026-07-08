@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/Table';
 import { Button } from '../components/Button';
 import { api } from '../utils/api';
+import { useToast } from '../components/Toast';
 import { statusKesehatanMapping, hitungKategoriLansia, hitungUsia, klasifikasiIMT } from '../utils/constants';
 
 const labelRisiko = { risiko_rendah: 'Risiko Rendah', risiko_sedang: 'Risiko Sedang', risiko_tinggi: 'Risiko Tinggi' };
@@ -41,6 +42,7 @@ export function LaporanPage() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [filterRekomendasi, setFilterRekomendasi] = useState('');
   const [filterRisiko, setFilterRisiko] = useState('');
+  const toast = useToast();
   
   useEffect(() => {
     loadLaporan();
@@ -89,6 +91,7 @@ export function LaporanPage() {
     link.href = URL.createObjectURL(blob);
     link.download = `laporan_lansia_${startDate}_${endDate}.csv`;
     link.click();
+    api.createNotification({ type: 'laporan_terkirim', title: 'Laporan Terkirim', message: `Laporan CSV ${startDate} s.d ${endDate} berhasil diexport` }).catch(() => {});
   };
   
   const exportToExcel = () => {
@@ -124,6 +127,7 @@ export function LaporanPage() {
     link.href = URL.createObjectURL(blob);
     link.download = `laporan_lansia_${startDate}_${endDate}.xls`;
     link.click();
+    api.createNotification({ type: 'laporan_terkirim', title: 'Laporan Terkirim', message: `Laporan Excel ${startDate} s.d ${endDate} berhasil diexport` }).catch(() => {});
   };
   
   return (

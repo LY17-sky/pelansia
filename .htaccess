@@ -1,49 +1,26 @@
 DirectoryIndex index.php
 
-    <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /pelaporanlansia/
+<IfModule mod_rewrite.c>
+RewriteEngine On
 
-    # BLOCK: direktori data (SQLite database)
-    RewriteRule ^data/ - [F,L]
+# BLOCK: direktori data (SQLite database)
+RewriteRule ^data/ - [F,L]
 
-    # BLOCK: file database dan konfigurasi sensitif
-    RewriteRule \.db$ - [F,L]
-    RewriteRule \.sql$ - [F,L]
-    RewriteRule \.git/ - [F,L]
+# BLOCK: file database dan konfigurasi sensitif
+RewriteRule \.db$ - [F,L]
+RewriteRule \.sql$ - [F,L]
+RewriteRule ^\.git/ - [F,L]
 
-    # BLOCK: script setup/testing dari akses publik
-    RewriteRule ^test_db\.php$ - [F,L]
-    RewriteRule ^setup\.php$ - [F,L]
-    RewriteRule ^init_db\.php$ - [F,L]
+# BLOCK: script setup/testing dari akses publik
+RewriteRule ^test_db\.php$ - [F,L]
+RewriteRule ^setup\.php$ - [F,L]
+RewriteRule ^init_db\.php$ - [F,L]
 
-    # Serve dist/ files directly
-    RewriteCond %{REQUEST_URI} ^/pelaporanlansia/dist/ [NC]
-    RewriteRule ^ - [L]
-    
-    # Redirect /assets/ to /dist/assets/ (React SPA build output)
-    RewriteCond %{REQUEST_URI} ^/pelaporanlansia/assets/ [NC]
-    RewriteRule ^(.*)$ dist/$1 [L]
-    
-    # Serve PHP files directly
-    RewriteCond %{REQUEST_URI} \.php$ [NC]
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
-    
-    # Serve inc files
-    RewriteCond %{REQUEST_URI} ^/pelaporanlansia/inc/ [NC]
-    RewriteRule ^ - [L]
-    
-    # Serve config files
-    RewriteCond %{REQUEST_URI} ^/pelaporanlansia/config/ [NC]
-    RewriteRule ^ - [L]
-    
-    # Serve api files
-    RewriteCond %{REQUEST_URI} ^/pelaporanlansia/api/ [NC]
-    RewriteRule ^ - [L]
-    
-    # Serve React SPA for other requests
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [L]
+# Allow file/folder yang benar-benar ada
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# SPA fallback — kirim ke index.php
+RewriteRule ^(.*)$ index.php [L]
 </IfModule>

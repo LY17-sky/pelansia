@@ -14,6 +14,16 @@ $totalLansia = dbFetch("SELECT COUNT(*) as total FROM lansia WHERE status_aktif 
 $kunjunganHariIni = dbFetch("SELECT COUNT(*) as total FROM visits WHERE tanggal_kunjungan = ?", [$today])['total'] ?? 0;
 $lansiaSakit = dbFetch("SELECT COUNT(*) as total FROM lansia WHERE status_aktif = 'aktif' AND status_kesehatan != 'sehat'")['total'] ?? 0;
 
+$kunjunganHariIniList = dbFetchAll(
+    "SELECT v.*, l.nama_lengkap, l.nik FROM visits v 
+     JOIN lansia l ON v.id_lansia = l.id 
+     WHERE v.tanggal_kunjungan = ? ORDER BY v.jam_kunjungan", [$today]
+);
+
+$lansiaSakitList = array_values(array_filter($activeLansia, function($l) {
+    return $l['status_kesehatan'] !== 'sehat';
+}));
+
 $chartHarian = [];
 for ($i = 6; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
@@ -87,11 +97,19 @@ ob_start();
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
 }
+.stat-card-clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.stat-card-clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+}
 </style>
 
 <div class="row g-3 g-lg-4 mb-4">
     <div class="col-12 col-sm-6 col-xl-4">
-        <div class="stat-card" style="background: linear-gradient(135deg, #b1c9ef 0%, #c7d8f3 100%); color: white;">
+        <div class="stat-card stat-card-clickable" data-bs-toggle="modal" data-bs-target="#modal-total-lansia" style="background: linear-gradient(135deg, #b1c9ef 0%, #c7d8f3 100%); color: white;">
             <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
                 <i class="bi bi-people"></i>
             </div>
@@ -102,7 +120,7 @@ ob_start();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-xl-4">
-        <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white;">
+        <div class="stat-card stat-card-clickable" data-bs-toggle="modal" data-bs-target="#modal-kunjungan-hari-ini" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white;">
             <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
                 <i class="bi bi-calendar-check"></i>
             </div>
@@ -113,7 +131,7 @@ ob_start();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-xl-4">
-        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: white;">
+        <div class="stat-card stat-card-clickable" data-bs-toggle="modal" data-bs-target="#modal-lansia-sakit" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: white;">
             <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
                 <i class="bi bi-exclamation-triangle"></i>
             </div>
@@ -393,6 +411,171 @@ $modalsData = [
     </div>
 </div>
 <?php endforeach; ?>
+
+<!-- Modal Total Lansia Terdaftar -->
+<div class="modal fade" id="modal-total-lansia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #b1c9ef 0%, #5a8fd4 100%);">
+                <h5 class="modal-title"><i class="bi bi-people me-2"></i>Daftar Semua Lansia Terdaftar</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <?php if (empty($activeLansia)): ?>
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+                        Tidak ada data lansia.
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Nama Lansia</th>
+                                    <th>NIK</th>
+                                    <th>Umur</th>
+                                    <th>L/P</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($activeLansia as $row): ?>
+                                <tr>
+                                    <td class="ps-4 fw-medium"><a href="detail-lansia.php?id=<?= $row['id'] ?>" class="text-decoration-none"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
+                                    <td><?= htmlspecialchars($row['nik']) ?></td>
+                                    <td><?= $row['umur'] ?> thn</td>
+                                    <td><?= $row['jenis_kelamin'] ?></td>
+                                    <td>
+                                        <?php if ($row['status_kesehatan'] == 'sehat'): ?>
+                                            <span class="badge bg-success">Sehat</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_ringan'): ?>
+                                            <span class="badge bg-warning text-dark">Ringan</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_berat'): ?>
+                                            <span class="badge bg-danger">Berat</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Kunjungan Hari Ini -->
+<div class="modal fade" id="modal-kunjungan-hari-ini" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                <h5 class="modal-title"><i class="bi bi-calendar-check me-2"></i>Daftar Kunjungan Hari Ini (<?= date('d/m/Y', strtotime($today)) ?>)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <?php if (empty($kunjunganHariIniList)): ?>
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+                        Belum ada kunjungan hari ini.
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Nama Lansia</th>
+                                    <th>Jam</th>
+                                    <th>Diagnosa</th>
+                                    <th>Status</th>
+                                    <th>Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($kunjunganHariIniList as $row): ?>
+                                <tr>
+                                    <td class="ps-4 fw-medium"><a href="detail-lansia.php?id=<?= $row['id_lansia'] ?>" class="text-decoration-none"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
+                                    <td><?= date('H:i', strtotime($row['jam_kunjungan'])) ?></td>
+                                    <td><?= htmlspecialchars($row['diagnosa'] ?: '-') ?></td>
+                                    <td>
+                                        <?php if ($row['status_kesehatan'] == 'sehat'): ?>
+                                            <span class="badge bg-success">Sehat</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_ringan'): ?>
+                                            <span class="badge bg-warning text-dark">Ringan</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_berat'): ?>
+                                            <span class="badge bg-danger">Berat</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($row['tindakan'] ?: '-') ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Lansia Sakit -->
+<div class="modal fade" id="modal-lansia-sakit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Daftar Lansia Sakit</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <?php if (empty($lansiaSakitList)): ?>
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+                        Tidak ada lansia dengan status sakit.
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Nama Lansia</th>
+                                    <th>NIK</th>
+                                    <th>Umur</th>
+                                    <th>L/P</th>
+                                    <th>Status Kesehatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($lansiaSakitList as $row): ?>
+                                <tr>
+                                    <td class="ps-4 fw-medium"><a href="detail-lansia.php?id=<?= $row['id'] ?>" class="text-decoration-none"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
+                                    <td><?= htmlspecialchars($row['nik']) ?></td>
+                                    <td><?= $row['umur'] ?> thn</td>
+                                    <td><?= $row['jenis_kelamin'] ?></td>
+                                    <td>
+                                        <?php if ($row['status_kesehatan'] == 'sehat'): ?>
+                                            <span class="badge bg-success">Sehat</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_ringan'): ?>
+                                            <span class="badge bg-warning text-dark">Ringan</span>
+                                        <?php elseif ($row['status_kesehatan'] == 'sakit_berat'): ?>
+                                            <span class="badge bg-danger">Berat</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 $content = ob_get_clean();

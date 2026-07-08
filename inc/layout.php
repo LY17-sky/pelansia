@@ -1,3 +1,25 @@
+<?php
+if (isset($_GET['notif_read_all'])) {
+    $uid = $_SESSION['user_id'] ?? 0;
+    if ($uid) {
+        try {
+            getDbConn()->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?")->execute([$uid]);
+        } catch(PDOException $e) {}
+    }
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true]);
+    exit;
+}
+$__userId = $_SESSION['user_id'] ?? 0;
+$__notifications = [];
+$__unreadCount = 0;
+$__puskesmasNama = '-';
+if ($__userId) {
+    $__notifications = function_exists('getNotifications') ? getNotifications($__userId, 5) : [];
+    $__unreadCount = function_exists('getUnreadNotifCount') ? getUnreadNotifCount($__userId) : 0;
+    $__puskesmasNama = function_exists('dbFetch') ? (dbFetch("SELECT nama_puskesmas FROM puskesmas LIMIT 1")['nama_puskesmas'] ?? '-') : '-';
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1258,39 +1280,47 @@
             <div class="dropdown-container">
                 <button class="nav-icon-btn" id="notifBtn" onclick="toggleNotif(event)">
                     <i class="bi bi-bell"></i>
-                    <span class="badge-count">3</span>
+                    <?php if ($__unreadCount > 0): ?>
+                <span class="badge-count" id="notifBadge"><?= $__unreadCount > 9 ? '9+' : $__unreadCount ?></span>
+                <?php endif; ?>
                 </button>
                 <div class="dropdown-menu-custom" id="notifDropdown">
                     <div class="dropdown-header">
                         <span><i class="bi bi-bell me-2"></i>Notifikasi</span>
                         <span class="mark-read" onclick="markAllRead()">Tandai semua dibaca</span>
                     </div>
+                    <?php if (empty($__notifications)): ?>
                     <div class="dropdown-item-custom">
-                        <div class="notif-icon info"><i class="bi bi-info-circle"></i></div>
-                        <div class="notif-content">
-                            <div class="notif-title">Data Lansia Baru</div>
-                            <div class="notif-desc">Ada 5 data lansia baru yang perlu diverifikasi</div>
-                            <div class="notif-time">5 menit yang lalu</div>
+                        <div class="notif-content text-center py-2">
+                            <div class="notif-desc" style="color: #94a3b8;">Tidak ada notifikasi</div>
                         </div>
                     </div>
-                    <div class="dropdown-item-custom">
-                        <div class="notif-icon warning"><i class="bi bi-exclamation-triangle"></i></div>
+                    <?php else: ?>
+                    <?php foreach ($__notifications as $__n):
+                        $__iconClass = match($__n['type']) {
+                            'lansia_baru', 'kunjungan_baru' => 'info',
+                            'lansia_risti', 'kesehatan_memburuk' => 'warning',
+                            'laporan_terkirim' => 'success',
+                            default => 'info'
+                        };
+                        $__biIcon = match($__iconClass) {
+                            'info' => 'bi-info-circle',
+                            'warning' => 'bi-exclamation-triangle',
+                            'success' => 'bi-check-circle'
+                        };
+                    ?>
+                    <div class="dropdown-item-custom" style="<?= $__n['is_read'] ? 'opacity:0.75;' : '' ?>">
+                        <div class="notif-icon <?= $__iconClass ?>"><i class="bi <?= $__biIcon ?>"></i></div>
                         <div class="notif-content">
-                            <div class="notif-title">Reminder Check-up</div>
-                            <div class="notif-desc">3 lansia wajib kontrol hari ini</div>
-                            <div class="notif-time">1 jam yang lalu</div>
+                            <div class="notif-title"><?= htmlspecialchars($__n['title']) ?></div>
+                            <div class="notif-desc"><?= htmlspecialchars($__n['message']) ?></div>
+                            <div class="notif-time"><?= getTimeAgo($__n['created_at']) ?></div>
                         </div>
                     </div>
-                    <div class="dropdown-item-custom">
-                        <div class="notif-icon success"><i class="bi bi-check-circle"></i></div>
-                        <div class="notif-content">
-                            <div class="notif-title">Laporan Terkirim</div>
-                            <div class="notif-desc">Laporan bulanan berhasil dikirim</div>
-                            <div class="notif-time">Hari kemarin</div>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                     <div class="dropdown-footer-custom">
-                        <a href="#">Lihat semua notifikasi</a>
+                        <a href="#" onclick="markAllRead(); return false;">Tandai semua dibaca</a>
                     </div>
                 </div>
             </div>
@@ -1317,7 +1347,7 @@
                                 <i class="bi bi-clipboard-plus"></i> Input Kunjungan
                             </div>
                             <?php endif; ?>
-                            <div class="settings-item">
+                            <div class="settings-item" data-bs-toggle="modal" data-bs-target="#modal-bantuan">
                                 <i class="bi bi-question-circle"></i> Bantuan
                             </div>
                         </div>
@@ -1395,8 +1425,18 @@ function closeAllDropdowns() {
 }
 
 function markAllRead() {
-    document.getElementById('notifDropdown').querySelector('.badge-count').style.display = 'none';
-    alert('Semua notifikasi telah ditandai dibaca');
+    fetch(window.location.pathname + '?notif_read_all=1')
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                var badge = document.getElementById('notifBadge');
+                if (badge) badge.style.display = 'none';
+                document.querySelectorAll('.dropdown-item-custom').forEach(function(el) {
+                    el.style.opacity = '0.5';
+                });
+            }
+        })
+        .catch(function() {});
 }
 
 document.addEventListener('click', function(e) {
@@ -1410,6 +1450,105 @@ document.addEventListener('click', function(e) {
     <?= $content ?>
 </div>
 <?php endif; ?>
+
+<!-- Modal Bantuan -->
+<div class="modal fade" id="modal-bantuan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title"><i class="bi bi-question-circle me-2"></i>Bantuan & Panduan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-lightning me-2"></i>Panduan Cepat</h6>
+                <div class="row g-2 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fw-medium"><i class="bi bi-people text-primary me-2"></i>Data Lansia</div>
+                            <small class="text-muted">Menu untuk menambah, mengedit, dan mencari data lansia</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fw-medium"><i class="bi bi-clipboard-plus text-success me-2"></i>Input Kunjungan</div>
+                            <small class="text-muted">Mencatat kunjungan dan hasil pemeriksaan lansia</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fw-medium"><i class="bi bi-file-earmark-text text-warning me-2"></i>Laporan</div>
+                            <small class="text-muted">Melihat dan mengexport laporan (PDF/CSV/Excel)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fw-medium"><i class="bi bi-gear text-secondary me-2"></i>Pengaturan Akun</div>
+                            <small class="text-muted">Mengganti password dan data profil akun</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-palette me-2"></i>Arti Warna Status</h6>
+                <div class="row g-2 mb-4">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3">
+                            <span class="badge bg-success" style="width: 60px;">Sehat</span>
+                            <small class="text-muted">Lansia dalam kondisi sehat</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3">
+                            <span class="badge bg-warning text-dark" style="width: 60px;">Ringan</span>
+                            <small class="text-muted">Lansia dengan sakit ringan</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3">
+                            <span class="badge bg-danger" style="width: 60px;">Berat</span>
+                            <small class="text-muted">Lansia dengan sakit berat</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3">
+                            <span class="badge bg-danger" style="width: 60px;">Risti</span>
+                            <small class="text-muted">Lansia risiko tinggi</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-circle me-2"></i>Informasi Sistem</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted ps-0" style="width: 130px;">Aplikasi</td>
+                        <td class="fw-medium">PELANSIA v1.0.0</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted ps-0">Puskesmas</td>
+                        <td class="fw-medium"><?= htmlspecialchars($__puskesmasNama) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted ps-0">Login sebagai</td>
+                        <td class="fw-medium"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? '-') ?></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted ps-0">Role</td>
+                        <td><span class="badge bg-<?= (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin') ? 'danger' : 'primary' ?>"><?= htmlspecialchars($_SESSION['role'] ?? '-') ?></span></td>
+                    </tr>
+                </table>
+
+            </div>
+            <div class="modal-footer border-0 justify-content-center gap-2">
+                <a href="PANDUAN_PENGGUNAAN.md" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-file-text me-1"></i> Panduan Pengguna
+                </a>
+                <a href="PANDUAN_DETAIL_LANSIA.md" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-file-text me-1"></i> Detail Lansia
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

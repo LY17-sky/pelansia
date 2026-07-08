@@ -77,6 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $gangguan_penglihatan, $gangguan_pendengaran, $risiko_jatuh, $status_kemandirian, $gangguan_daya_ingat
             ]);
             $message = 'Data kunjungan berhasil disimpan';
+            $lansiaData = dbFetch("SELECT nama_lengkap FROM lansia WHERE id = ?", [$id_lansia]);
+            $lansiaName = $lansiaData ? $lansiaData['nama_lengkap'] : 'Unknown';
+            $userId = $_SESSION['user_id'] ?? 0;
+            $userName = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+            createNotification($userId, 'kunjungan_baru', 'Kunjungan Baru', "Kunjungan: {$lansiaName} — Diagnosa: {$diagnosa}");
+            broadcastNotification('kunjungan_baru', 'Kunjungan Baru', "Kunjungan {$lansiaName} oleh {$userName} — Diagnosa: {$diagnosa}", null, $userId);
+            if ($status_kesehatan === 'sakit_berat') {
+                createNotification($userId, 'kesehatan_memburuk', 'Status Kesehatan Memburuk', "Status {$lansiaName} memburuk: Sakit Berat");
+                broadcastNotification('kesehatan_memburuk', 'Status Kesehatan Memburuk', "Status {$lansiaName} memburuk: Sakit Berat", null, $userId);
+            }
         } catch(PDOException $e) {
             if (str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
                 $error = 'Data kunjungan dengan lansia, tanggal, dan jam yang sama sudah ada';

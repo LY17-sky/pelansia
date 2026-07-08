@@ -133,4 +133,17 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return request(`health-classify?${query}`);
   },
+
+  getNotifications: () => request('notifications'),
+
+  getNotifCount: () => request('notifications/count'),
+
+  markAllRead: () => request('notifications/read-all', { method: 'PUT' }),
+
+  markRead: (id) => request(`notifications/read/${id}`, { method: 'PUT' }),
+
+  createNotification: (data) => request('notifications', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };

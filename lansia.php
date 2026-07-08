@@ -78,6 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['status_kesehatan'] ?? 'sehat', $kategori, $status_risiko
                         ]);
                         $message = 'Data berhasil disimpan';
+                        $userId = $_SESSION['user_id'] ?? 0;
+                        $userName = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+                        $lansiaName = $_POST['nama_lengkap'];
+                        createNotification($userId, 'lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} berhasil ditambahkan");
+                        broadcastNotification('lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} ditambahkan oleh {$userName}", null, $userId);
+                        if ($status_risiko === 'risiko_tinggi') {
+                            createNotification($userId, 'lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi");
+                            broadcastNotification('lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi", null, $userId);
+                        }
                     } catch(PDOException $e) {
                         $message = 'Error: ' . $e->getMessage();
                     }

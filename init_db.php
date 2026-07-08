@@ -123,6 +123,18 @@ function initSqliteDatabase($conn) {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
 
+    $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        related_id INTEGER,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )");
+
     $count = $conn->query("SELECT COUNT(*) FROM puskesmas")->fetchColumn();
     if ($count == 0) {
         $conn->exec("INSERT INTO puskesmas (nama_puskesmas, alamat, telepon, kode_puskesmas) VALUES ('Puskesmas Utama', 'Jl. Kesehatan No. 1', '021-1234567', 'PKM001')");

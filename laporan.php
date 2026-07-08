@@ -35,6 +35,12 @@ if ($export === 'pdf') {
         return $total > 0 ? round($value / $total * 100) : 0;
     }
     
+    $userId = $_SESSION['user_id'] ?? 0;
+    if ($userId) {
+        $userName = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+        createNotification($userId, 'laporan_terkirim', 'Laporan Terkirim', "Laporan kunjungan {$tanggal} berhasil diexport oleh {$userName}");
+        broadcastNotification('laporan_terkirim', 'Laporan Terkirim', "Laporan kunjungan {$tanggal} diexport oleh {$userName}", null, $userId, 'super_admin');
+    }
     header('Content-Type: text/html; charset=utf-8');
     ?>
 <!DOCTYPE html>

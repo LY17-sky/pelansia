@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Users, ClipboardList, HeartPulse, FileText, UserPlus } from 'lucide-react';
+import { Users, ClipboardList, HeartPulse, FileText, UserPlus, X, Clock, Activity, Inbox } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/Card';
+import { Modal } from '../components/Modal';
 import { api } from '../utils/api';
 
 const COLORS = {
@@ -35,6 +36,11 @@ export function DashboardPage() {
     rujukanPoli: [],
   });
   const [loading, setLoading] = useState(true);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalType, setModalType] = useState('');
   
   useEffect(() => {
     loadDashboard();
@@ -51,6 +57,34 @@ export function DashboardPage() {
     }
   };
   
+  const openModal = async (type) => {
+    setModalLoading(true);
+    setModalOpen(true);
+    setModalType(type);
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      let result;
+      if (type === 'total') {
+        result = await api.getLansia();
+        setModalTitle('Daftar Semua Lansia Terdaftar');
+        setModalData(result.data || []);
+      } else if (type === 'kunjungan') {
+        result = await api.getVisits(today, today);
+        setModalTitle(`Kunjungan Hari Ini (${today})`);
+        setModalData(result.data || []);
+      } else if (type === 'sakit') {
+        result = await api.getLansia();
+        const sakit = (result.data || []).filter(l => l.status_kesehatan && l.status_kesehatan !== 'sehat');
+        setModalTitle('Daftar Lansia Sakit');
+        setModalData(sakit);
+      }
+    } catch (e) {
+      setModalData([]);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const stats = [
     { 
       title: 'Jumlah Lansia', 
@@ -117,8 +151,9 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
+          const types = ['total', 'kunjungan', 'sakit'];
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
+            <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openModal(types[index])}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">{stat.title}</p>
@@ -269,6 +304,94 @@ export function DashboardPage() {
           </Card>
         )}
       </div>
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle} size="xl">
+        {modalLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4A90D9]" />
+          </div>
+        ) : modalData.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Inbox className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>Tidak ada data</p>
+          </div>
+        ) : modalType === 'kunjungan' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Nama Lansia</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Jam</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Diagnosa</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Tindakan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData.map((row, i) => (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{row.nama_lengkap}</td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        {row.jam_kunjungan ? row.jam_kunjungan.substring(0, 5) : '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{row.diagnosa || '-'}</td>
+                    <td className="px-4 py-3">
+                      {row.status_kesehatan === 'sehat' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Sehat</span>
+                      ) : row.status_kesehatan === 'sakit_ringan' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Ringan</span>
+                      ) : row.status_kesehatan === 'sakit_berat' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Berat</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{row.tindakan || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Nama Lansia</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">NIK</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Umur</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">L/P</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData.map((row, i) => (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{row.nama_lengkap}</td>
+                    <td className="px-4 py-3 text-gray-500">{row.nik}</td>
+                    <td className="px-4 py-3">{row.usia || '-'} thn</td>
+                    <td className="px-4 py-3">{row.jenis_kelamin}</td>
+                    <td className="px-4 py-3">
+                      {row.status_kesehatan === 'sehat' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Sehat</span>
+                      ) : row.status_kesehatan === 'sakit_ringan' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Ringan</span>
+                      ) : row.status_kesehatan === 'sakit_berat' ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Berat</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
