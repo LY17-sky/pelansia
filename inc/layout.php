@@ -257,6 +257,10 @@ if ($__userId) {
             margin: 0;
             letter-spacing: 0;
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
         }
         
         .top-navbar-right {
@@ -1015,6 +1019,26 @@ if ($__userId) {
             border-color: var(--primary-light);
         }
         
+        /* Card interactivity */
+        .stat-card-clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .stat-card-clickable:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+        }
+        .category-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+        }
+        
         /* ===== ALERTS ===== */
         .alert {
             border: none;
@@ -1347,7 +1371,7 @@ if ($__userId) {
                                 <i class="bi bi-clipboard-plus"></i> Input Kunjungan
                             </div>
                             <?php endif; ?>
-                            <div class="settings-item" data-bs-toggle="modal" data-bs-target="#modal-bantuan">
+                            <div class="settings-item" data-bs-toggle="modal" data-bs-target="#modal-bantuan" onclick="closeAllDropdowns()">
                                 <i class="bi bi-question-circle"></i> Bantuan
                             </div>
                         </div>
@@ -1450,6 +1474,12 @@ document.addEventListener('click', function(e) {
     <?= $content ?>
 </div>
 <?php endif; ?>
+
+<style>
+.modal { z-index: 10050; }
+.modal-backdrop { z-index: 10040; }
+.modal-body { padding-top: 1.5rem; }
+</style>
 
 <!-- Modal Bantuan -->
 <div class="modal fade" id="modal-bantuan" tabindex="-1" aria-hidden="true">

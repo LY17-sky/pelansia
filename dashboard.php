@@ -20,9 +20,7 @@ $kunjunganHariIniList = dbFetchAll(
      WHERE v.tanggal_kunjungan = ? ORDER BY v.jam_kunjungan", [$today]
 );
 
-$lansiaSakitList = array_values(array_filter($activeLansia, function($l) {
-    return $l['status_kesehatan'] !== 'sehat';
-}));
+$activeLansia = dbFetchAll("SELECT id, nik, nama_lengkap, jenis_kelamin, tanggal_lahir, alamat, status_kesehatan FROM lansia WHERE status_aktif = 'aktif' ORDER BY nama_lengkap ASC");
 
 $chartHarian = [];
 for ($i = 6; $i >= 0; $i--) {
@@ -54,8 +52,6 @@ $statusKesehatan = [
 ];
 
 // Calculation for Age Categories
-$activeLansia = dbFetchAll("SELECT id, nik, nama_lengkap, jenis_kelamin, tanggal_lahir, alamat, status_kesehatan FROM lansia WHERE status_aktif = 'aktif' ORDER BY nama_lengkap ASC");
-
 $kategoriLansia = [
     'pra_lansia' => [],
     'lansia' => [],
@@ -64,8 +60,8 @@ $kategoriLansia = [
 ];
 
 $todayDate = new DateTime();
-foreach ($activeLansia as $l) {
-    if (empty($l['tanggal_lahir'])) continue;
+foreach ($activeLansia as &$l) {
+    if (empty($l['tanggal_lahir'])) { $l['umur'] = '-'; continue; }
     try {
         $bday = new DateTime($l['tanggal_lahir']);
         $age = $todayDate->diff($bday)->y;
@@ -80,32 +76,17 @@ foreach ($activeLansia as $l) {
         } elseif ($age >= 80) {
             $kategoriLansia['risiko_tinggi'][] = $l;
         }
-    } catch(Exception $e) {}
+    } catch(Exception $e) { $l['umur'] = '-'; }
 }
+unset($l);
+
+$lansiaSakitList = array_values(array_filter($activeLansia, function($l) {
+    return $l['status_kesehatan'] !== 'sehat';
+}));
 
 ob_start();
 ?>
 
-<style>
-.category-card {
-    transition: all 0.3s ease;
-    cursor: pointer;
-    border: none;
-    border-radius: 12px;
-}
-.category-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
-}
-.stat-card-clickable {
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.stat-card-clickable:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
-}
-</style>
 
 <div class="row g-3 g-lg-4 mb-4">
     <div class="col-12 col-sm-6 col-xl-4">
