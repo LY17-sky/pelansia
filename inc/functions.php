@@ -42,8 +42,15 @@ function validateTokenFromDb($token) {
 }
 
 function loadUserFromToken() {
-    $headers = getallheaders();
-    $token = str_replace('Bearer ', '', $headers['Authorization'] ?? '');
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+    if (!$headers) {
+        foreach ($_SERVER as $k => $v) {
+            if (str_starts_with($k, 'HTTP_')) {
+                $headers[str_replace('_', '-', strtolower(substr($k, 5)))] = $v;
+            }
+        }
+    }
+    $token = str_replace('Bearer ', '', $headers['Authorization'] ?? $headers['authorization'] ?? '');
     if (!$token) return false;
     $userId = validateTokenFromDb($token);
     if (!$userId) return false;
