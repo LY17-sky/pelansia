@@ -251,15 +251,15 @@ switch ($endpoint) {
                 $insertNotif = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id) VALUES (?, ?, ?, ?, ?)");
                 $insertNotif->execute([$userId, 'lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} berhasil ditambahkan", $newId]);
                 $superStmt = $conn->query("SELECT id FROM users WHERE role = 'super_admin' AND status = 'active'");
-                while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                $superAdmins = $superStmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($superAdmins as $sa) {
                     if ($sa['id'] != $userId) {
                         $insertNotif->execute([$sa['id'], 'lansia_baru', 'Data Lansia Baru', "Data lansia {$lansiaName} ditambahkan oleh {$userName}", $newId]);
                     }
                 }
                 if (($data['status_risiko'] ?? '') === 'risiko_tinggi') {
                     $insertNotif->execute([$userId, 'lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi", $newId]);
-                    $superStmt->execute();
-                    while ($sa = $superStmt->fetch(PDO::FETCH_ASSOC)) {
+                    foreach ($superAdmins as $sa) {
                         if ($sa['id'] != $userId) {
                             $insertNotif->execute([$sa['id'], 'lansia_risti', 'Lansia Risiko Tinggi', "Perhatian! {$lansiaName} terdaftar sebagai lansia risiko tinggi", $newId]);
                         }
